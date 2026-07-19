@@ -130,6 +130,15 @@
                 </div>
                 <button onclick="generateStaffList()">更新員工清單</button>
             </div>
+            <div class="control-row" style="margin-bottom: 0;">
+                <div class="control-group" style="flex: 1; min-width: 280px;">
+                    <label>本機排班網址（ngrok）</label>
+                    <input type="url" id="apiBaseUrl" placeholder="https://xxxx.ngrok-free.app">
+                </div>
+                <button onclick="saveApiUrl()">儲存網址</button>
+                <button onclick="clearApiUrl()" class="secondary">清除</button>
+                <span id="apiConnectionStatus" style="font-size: 13px; color: #495057;"></span>
+            </div>
         </div>
 
         <div class="tab-container">
@@ -249,9 +258,12 @@
             this.shiftHours = { 'O': 12, 'N': 12, 'R': 12, 'C': 8, 'S': 8 };
             this.progressInterval = null;
             this.solverMaxSeconds = window.APP_CONFIG.SOLVER_MAX_SECONDS || 60;
+            this.defaultApiBaseUrl = window.APP_CONFIG.API_BASE_URL || '';
+            this.apiBaseUrl = localStorage.getItem('pgySchedulerApiBaseUrl') || this.defaultApiBaseUrl;
         }
 
         init() {
+            this.renderApiSettings();
             this.updateMonth();
             this.generateStaffList();
             this.generateRequirements();
@@ -259,6 +271,37 @@
                 this.initializeEmptySchedule();
             }
             this.renderAll();
+        }
+
+        renderApiSettings() {
+            const input = document.getElementById('apiBaseUrl');
+            const status = document.getElementById('apiConnectionStatus');
+            input.value = this.apiBaseUrl;
+            status.textContent = this.apiBaseUrl ? '已儲存在此瀏覽器' : '請貼上 ngrok HTTPS 網址';
+            status.style.color = this.apiBaseUrl ? '#155724' : '#856404';
+        }
+
+        saveApiUrl() {
+            const input = document.getElementById('apiBaseUrl');
+            let apiBaseUrl;
+            try {
+                const url = new URL(input.value.trim());
+                if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsupported protocol');
+                apiBaseUrl = url.href.replace(/\/+$/, '');
+            } catch {
+                this.showAlert('請輸入有效的 ngrok 網址，例如 https://xxxx.ngrok-free.app', 'error');
+                return;
+            }
+            this.apiBaseUrl = apiBaseUrl;
+            localStorage.setItem('pgySchedulerApiBaseUrl', apiBaseUrl);
+            this.renderApiSettings();
+            this.showAlert('本機排班網址已儲存。', 'success');
+        }
+
+        clearApiUrl() {
+            localStorage.removeItem('pgySchedulerApiBaseUrl');
+            this.apiBaseUrl = this.defaultApiBaseUrl;
+            this.renderApiSettings();
         }
 
 updateMonth() {
@@ -365,6 +408,11 @@ updateMonth() {
 
 async generateSchedule() {
         console.log('=== 開始呼叫 Python CP-SAT 進行智能排班 ===');
+
+        if (!this.apiBaseUrl) {
+            this.showAlert('請先貼上並儲存 ngrok HTTPS 網址。', 'error');
+            return;
+        }
         
         const requestData = {
             staff: this.staff,
@@ -375,7 +423,7 @@ async generateSchedule() {
         this.showProgress();
 
         try {
-            const response = await fetch(`${window.APP_CONFIG.API_BASE_URL}/solve`, {
+            const response = await fetch(`${this.apiBaseUrl}/solve`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
@@ -731,6 +779,8 @@ async generateSchedule() {
     const scheduler = new IntegratedScheduler();
     function generateStaffList() { scheduler.generateStaffList(); }
     function generateSchedule() { scheduler.generateSchedule(); } 
+    function saveApiUrl() { scheduler.saveApiUrl(); }
+    function clearApiUrl() { scheduler.clearApiUrl(); }
     function convertToEditMode() { scheduler.convertToEditMode(); }
     function clearAllShifts() { scheduler.clearAllShifts(); }
     function switchTab(tabName) {
