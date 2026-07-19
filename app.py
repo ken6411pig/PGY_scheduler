@@ -1,5 +1,3 @@
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -9,17 +7,9 @@ import random
 
 app = FastAPI(title="PGY Scheduler API")
 
-# Set ALLOWED_ORIGINS on Render to your GitHub Pages address, for example:
-# https://your-github-name.github.io
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
-    if origin.strip()
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -146,4 +136,4 @@ def solve_schedule(data: ScheduleRequest):
         return {"status": "failed", "message": "條件太嚴苛產生邏輯衝突，無法排出！請嘗試減少特定日期的需求人數或放寬排休條件。"}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    uvicorn.run(app, host="127.0.0.1", port=8000)
