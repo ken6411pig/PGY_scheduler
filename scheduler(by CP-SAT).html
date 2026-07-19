@@ -136,6 +136,7 @@
                     <input type="url" id="apiBaseUrl" placeholder="https://xxxx.ngrok-free.app">
                 </div>
                 <button onclick="saveApiUrl()">儲存網址</button>
+                <button onclick="copyShareLink()" class="secondary">複製分享連結</button>
                 <button onclick="clearApiUrl()" class="secondary">清除</button>
                 <span id="apiConnectionStatus" style="font-size: 13px; color: #495057;"></span>
             </div>
@@ -259,7 +260,10 @@
             this.progressInterval = null;
             this.solverMaxSeconds = window.APP_CONFIG.SOLVER_MAX_SECONDS || 60;
             this.defaultApiBaseUrl = window.APP_CONFIG.API_BASE_URL || '';
-            this.apiBaseUrl = localStorage.getItem('pgySchedulerApiBaseUrl') || this.defaultApiBaseUrl;
+            const sharedApiBaseUrl = new URLSearchParams(window.location.search).get('api');
+            this.apiBaseUrl = this.normalizeApiBaseUrl(sharedApiBaseUrl)
+                || localStorage.getItem('pgySchedulerApiBaseUrl')
+                || this.defaultApiBaseUrl;
         }
 
         init() {
@@ -283,12 +287,8 @@
 
         saveApiUrl() {
             const input = document.getElementById('apiBaseUrl');
-            let apiBaseUrl;
-            try {
-                const url = new URL(input.value.trim());
-                if (!['http:', 'https:'].includes(url.protocol)) throw new Error('unsupported protocol');
-                apiBaseUrl = url.href.replace(/\/+$/, '');
-            } catch {
+            const apiBaseUrl = this.normalizeApiBaseUrl(input.value);
+            if (!apiBaseUrl) {
                 this.showAlert('請輸入有效的 ngrok 網址，例如 https://xxxx.ngrok-free.app', 'error');
                 return;
             }
@@ -296,6 +296,32 @@
             localStorage.setItem('pgySchedulerApiBaseUrl', apiBaseUrl);
             this.renderApiSettings();
             this.showAlert('本機排班網址已儲存。', 'success');
+        }
+
+        normalizeApiBaseUrl(value) {
+            try {
+                const url = new URL((value || '').trim());
+                return ['http:', 'https:'].includes(url.protocol)
+                    ? url.href.replace(/\/+$/, '')
+                    : '';
+            } catch {
+                return '';
+            }
+        }
+
+        async copyShareLink() {
+            if (!this.apiBaseUrl) {
+                this.showAlert('請先儲存 ngrok 網址，再建立分享連結。', 'error');
+                return;
+            }
+            const shareUrl = new URL(window.location.href);
+            shareUrl.searchParams.set('api', this.apiBaseUrl);
+            try {
+                await navigator.clipboard.writeText(shareUrl.href);
+                this.showAlert('分享連結已複製，傳給其他人即可。', 'success');
+            } catch {
+                this.showAlert(`請複製此連結：${shareUrl.href}`, 'success');
+            }
         }
 
         clearApiUrl() {
@@ -780,6 +806,7 @@ async generateSchedule() {
     function generateStaffList() { scheduler.generateStaffList(); }
     function generateSchedule() { scheduler.generateSchedule(); } 
     function saveApiUrl() { scheduler.saveApiUrl(); }
+    function copyShareLink() { scheduler.copyShareLink(); }
     function clearApiUrl() { scheduler.clearApiUrl(); }
     function convertToEditMode() { scheduler.convertToEditMode(); }
     function clearAllShifts() { scheduler.clearAllShifts(); }
