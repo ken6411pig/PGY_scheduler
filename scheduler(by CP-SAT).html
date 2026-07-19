@@ -248,6 +248,7 @@
             this.currentMode = 'auto'; 
             this.shiftHours = { 'O': 12, 'N': 12, 'R': 12, 'C': 8, 'S': 8 };
             this.progressInterval = null;
+            this.solverMaxSeconds = window.APP_CONFIG.SOLVER_MAX_SECONDS || 60;
         }
 
         init() {
@@ -339,15 +340,16 @@ updateMonth() {
             const text = document.getElementById('progressText');
             overlay.style.display = 'flex';
             bar.style.width = '0%';
-            text.innerText = '0%';
-            let progress = 0;
+            text.innerText = `0%（預估 ${this.solverMaxSeconds} 秒）`;
+            const startedAt = Date.now();
             
             this.progressInterval = setInterval(() => {
-                if (progress < 85) progress += Math.random() * 3;
-                else if (progress < 95) progress += 0.5;
-                
-                bar.style.width = `${Math.min(progress, 95)}%`;
-                text.innerText = `${Math.floor(Math.min(progress, 95))}%`;
+                const elapsedSeconds = (Date.now() - startedAt) / 1000;
+                // The backend does not stream true solver progress. 95% is an
+                // honest time-based estimate; completion changes it to 100%.
+                const progress = Math.min((elapsedSeconds / this.solverMaxSeconds) * 95, 95);
+                bar.style.width = `${progress}%`;
+                text.innerText = `${Math.floor(progress)}%（預估 ${this.solverMaxSeconds} 秒）`;
             }, 150);
         }
 
