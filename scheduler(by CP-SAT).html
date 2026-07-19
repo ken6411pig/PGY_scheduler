@@ -144,10 +144,6 @@
         </div>
 
         <div id="autoTab" class="tab-content active">
-            <div class="mode-info">
-                🎯 <strong>自動排班模式</strong> - CP-SAT 運算核心已強制套用「班別連續」與「雙重工時平衡」
-            </div>
-
             <div class="staff-section">
                 <div class="section-header" onclick="toggleSection('staff')">
                     <h3>👥 員工管理與請假設定</h3>
@@ -509,7 +505,7 @@ async generateSchedule() {
                 <div class="summary-card"><div class="summary-value">${totalDay}</div><div class="summary-label">總白班需求</div></div>
                 <div class="summary-card"><div class="summary-value">${totalNight}</div><div class="summary-label">總夜班需求</div></div>
             `;
-            document.getElementById('leaveAnalysis').innerHTML = `<div class="leave-analysis"><h4>📊 請假分析</h4><p style="color: #28a745; margin: 0;">資料已同步連動</p></div>`;
+            document.getElementById('leaveAnalysis').innerHTML = '';
             
             const grid = document.getElementById('requirementsGrid');
             grid.innerHTML = '';
