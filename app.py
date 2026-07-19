@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ortools.sat.python import cp_model
 import uvicorn
 import random
@@ -19,6 +19,7 @@ class ScheduleRequest(BaseModel):
     staff: list
     requirements: dict
     daysInMonth: int
+    solveSeconds: int = Field(default=15, ge=1, le=60)
 
 
 @app.get("/health")
@@ -114,7 +115,7 @@ def solve_schedule(data: ScheduleRequest):
     model.Minimize(sum(objective_terms))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 30.0 
+    solver.parameters.max_time_in_seconds = float(data.solveSeconds)
     solver.parameters.random_seed = random.randint(1, 10000) 
     
     status = solver.Solve(model)

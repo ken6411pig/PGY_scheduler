@@ -128,6 +128,10 @@
                     <label>員工人數</label>
                     <input type="number" id="staffCount" min="8" max="12" value="10">
                 </div>
+                <div class="control-group">
+                    <label>求解秒數</label>
+                    <input type="number" id="solveSeconds" min="1" max="60" value="15">
+                </div>
                 <button onclick="generateStaffList()">更新員工清單</button>
             </div>
         </div>
@@ -247,7 +251,7 @@
             this.currentMode = 'auto'; 
             this.shiftHours = { 'O': 12, 'N': 12, 'R': 12, 'C': 8, 'S': 8 };
             this.progressInterval = null;
-            this.solverMaxSeconds = 30;
+            this.solverMaxSeconds = 15;
         }
 
         init() {
@@ -333,6 +337,13 @@ updateMonth() {
             });
         }
 
+        getSolveSeconds() {
+            const input = document.getElementById('solveSeconds');
+            const seconds = Math.min(60, Math.max(1, parseInt(input.value, 10) || 15));
+            input.value = seconds;
+            return seconds;
+        }
+
         showProgress() {
             const overlay = document.getElementById('progressOverlay');
             const bar = document.getElementById('progressBar');
@@ -365,10 +376,13 @@ updateMonth() {
 async generateSchedule() {
         console.log('=== 開始呼叫 Python CP-SAT 進行智能排班 ===');
 
+        this.solverMaxSeconds = this.getSolveSeconds();
+
         const requestData = {
             staff: this.staff,
             requirements: this.requirements,
-            daysInMonth: this.daysInMonth
+            daysInMonth: this.daysInMonth,
+            solveSeconds: this.solverMaxSeconds
         };
 
         this.showProgress();
