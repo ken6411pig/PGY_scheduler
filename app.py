@@ -114,7 +114,7 @@ def solve_schedule(data: ScheduleRequest):
     model.Minimize(sum(objective_terms))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 60.0 
+    solver.parameters.max_time_in_seconds = 30.0 
     solver.parameters.random_seed = random.randint(1, 10000) 
     
     status = solver.Solve(model)
