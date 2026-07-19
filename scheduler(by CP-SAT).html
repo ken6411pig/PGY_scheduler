@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>急診排班系統</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #007bff 0%, #667eea 50%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        
+        .tab-container { background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+        .tab-nav { display: flex; gap: 0; }
+        .tab-button { background: #e9ecef; border: none; padding: 15px 25px; cursor: pointer; font-size: 16px; font-weight: 600; color: #495057; border-radius: 0; transition: all 0.3s ease; }
+        .tab-button.active { background: white; color: #007bff; border-bottom: 3px solid #007bff; }
+        .tab-button:hover:not(.active) { background: #d4edda; color: #155724; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .global-controls { padding: 20px; background: #e8f4f8; border-bottom: 1px solid #bee5eb; }
+        .control-row { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-weight: 600; color: #495057; font-size: 14px; }
+        input, select, button { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        button { background: #007bff; color: white; border: 1px solid #007bff; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
+        button:hover { background: #0056b3; }
+        button.secondary { background: #6c757d; border-color: #6c757d; }
+        button.secondary:hover { background: #545b62; }
+        
+        .staff-section, .requirements-section { background: white; padding: 0; border-bottom: 1px solid #dee2e6; }
+        .section-header { background: #f8f9fa; padding: 20px; border-bottom: 1px solid #dee2e6; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+        .section-header:hover { background: #e9ecef; }
+        .section-header h3 { margin: 0; display: flex; align-items: center; gap: 10px; }
+        .collapse-icon { font-size: 14px; transition: transform 0.2s; }
+        .collapse-icon.collapsed { transform: rotate(-90deg); }
+        .section-content { padding: 20px; display: block; }
+        .section-content.collapsed { display: none; }
+        
+        .staff-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px; }
+        .staff-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .staff-card h4 { color: #495057; margin-bottom: 10px; }
+        .leave-dates { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .leave-tag { background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 12px; border: 1px solid #ffeaa7; }
+        
+        .shift-legend { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 20px; }
+        .legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; }
+        .legend-color { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #ccc; }
+        
+        .schedule-container { padding: 20px; }
+        .schedule-grid, .edit-grid { display: grid; gap: 1px; background: #ddd; border-radius: 4px; overflow: hidden; margin-top: 15px; }
+        .grid-header, .grid-cell, .edit-header, .edit-cell { background: white; padding: 6px 4px; text-align: center; font-size: 12px; min-height: 35px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .grid-header, .edit-header { background: #495057; color: white; font-weight: 600; }
+        .day-header { background: #6c757d !important; color: white; font-weight: 600; min-height: 50px !important; }
+        .day-header.weekend { background: #dc3545 !important; color: white; }
+        .day-number { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
+        .day-name { font-size: 10px; opacity: 0.9; }
+        .staff-name { background: #495057 !important; color: white; font-weight: 600; justify-content: flex-start; padding-left: 8px; }
+        
+        .shift-day, .shift-O { background: #cce7ff !important; color: #004085; font-weight: 600; }
+        .shift-night, .shift-N { background: #d4edda !important; color: #155724; font-weight: 600; }
+        .shift-both { background: #ffeaa7 !important; color: #856404; font-weight: 600; }
+        .shift-R { background: #fff3cd !important; color: #856404; font-weight: 600; }
+        .shift-C { background: #e7e3ff !important; color: #5a3d99; font-weight: 600; }
+        .shift-S { background: #e2e3e5 !important; color: #383d41; font-weight: 600; }
+        .leave-day, .leave { background: #ffdfdf !important; color: #d60000; font-weight: 700; border: 1px solid #ffbaba; }
+        .conflict { background: #f8d7da !important; color: #721c24; }
+        
+        .edit-cell select { width: 100%; min-width: 30px; font-size: 11px; padding: 2px 4px; border: 1px solid #ccc; background: white; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
+        .stat-card { background: #007bff; color: white; padding: 15px; border-radius: 6px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+        
+        .workload-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .workload-table th, .workload-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        .workload-table th { background: #f8f9fa; font-weight: 600; color: #495057; }
+        
+        .alert { padding: 12px; border-radius: 4px; margin: 10px 0; }
+        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .alert-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        
+        .mode-info { background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 12px 20px; margin: 20px; border-radius: 6px; text-align: center; font-weight: 500; }
+        .requirements-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
+        .day-requirement { background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #dee2e6; text-align: center; }
+        .day-requirement.weekend { background: #fff5f5; border-color: #fed7d7; }
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }
+        .summary-card { background: white; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; text-align: center; }
+        .summary-value { font-size: 20px; font-weight: bold; color: #007bff; margin-bottom: 5px; }
+        .summary-label { font-size: 12px; color: #6c757d; }
+        
+        .leave-analysis { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+        .leave-analysis h4 { color: #856404; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .high-leave-days { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .leave-day-tag { background: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .leave-day-tag.medium { background: #fd7e14; }
+        .leave-day-tag.low { background: #28a745; }
+
+        /* 進度條樣式 */
+        .progress-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(3px); }
+        .progress-box { background: white; padding: 30px 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; width: 450px; max-width: 90%; }
+        .progress-box h3 { color: #007bff; margin-bottom: 10px; }
+        .progress-box p { color: #6c757d; font-size: 14px; margin-bottom: 20px; }
+        .progress-bar-container { width: 100%; height: 16px; background: #e9ecef; border-radius: 8px; overflow: hidden; position: relative; }
+        .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #007bff, #20c997); transition: width 0.4s ease; }
+        .progress-text { margin-top: 12px; font-weight: bold; color: #495057; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 急診排班系統</h1>
+            <p>智能排班 • 手動調整 • 工時平衡</p>
+            <p style="font-size: 14px; margin-top: 8px; opacity: 0.9;">
+                規則：整體連續工作≤6天 • 白班連續≤3天 • 夜班後不能接白班 • 預假前一天不排夜班 • 每月最後一天夜班0人
+            </p>
+        </div>
+
+        <div class="global-controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>年月</label>
+                    <input type="month" id="monthSelect">
+                </div>
+                <div class="control-group">
+                    <label>員工人數</label>
+                    <input type="number" id="staffCount" min="8" max="12" value="10">
+                </div>
+                <button onclick="generateStaffList()">更新員工清單</button>
+            </div>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-button active" onclick="switchTab('auto')">🎯 自動排班</button>
+                <button class="tab-button" onclick="switchTab('manual')">✏️ 手動編輯</button>
+            </div>
+        </div>
+
+        <div id="autoTab" class="tab-content active">
+            <div class="mode-info">
+                🎯 <strong>自動排班模式</strong> - CP-SAT 運算核心已強制套用「班別連續」與「雙重工時平衡」
+            </div>
+
+            <div class="staff-section">
+                <div class="section-header" onclick="toggleSection('staff')">
+                    <h3>👥 員工管理與請假設定</h3>
+                    <span class="collapse-icon" id="staff-icon">▼</span>
+                </div>
+                <div class="section-content" id="staff-content">
+                    <div id="staffGrid" class="staff-grid"></div>
+                </div>
+            </div>
+
+            <div class="requirements-section">
+                <div class="section-header" onclick="toggleSection('requirements')">
+                    <h3>📅 每日人力需求設定</h3>
+                    <span class="collapse-icon" id="requirements-icon">▼</span>
+                </div>
+                <div class="section-content" id="requirements-content">
+                    <div class="stats-summary" id="requirementsSummary"></div>
+                    <div id="leaveAnalysis"></div>
+                    <div id="requirementsGrid" class="requirements-grid"></div>
+                </div>
+            </div>
+
+            <div style="padding: 20px; text-align: center; background: #f8f9fa;">
+                <button onclick="generateSchedule()" style="font-size: 18px; padding: 15px 30px; background: #28a745; border-color: #28a745;">
+                    🎯 執行自動排班
+                </button>
+                <p style="margin-top: 10px; color: #6c757d; font-size: 14px;">
+                    演算法將在確保規則成立下，找出最平均且最連續的極致解答
+                </p>
+            </div>
+        </div>
+
+        <div id="manualTab" class="tab-content">
+            <div class="mode-info">
+                ✏️ <strong>手動編輯模式</strong> - 精細調整排班表，支援多種班別，即時統計工時
+            </div>
+            <div style="padding: 0 20px;">
+                <div class="shift-legend">
+                    <h4 style="margin-bottom: 10px;">🎨 班別說明</h4>
+                    <div class="legend-grid">
+                        <div class="legend-item"><div class="legend-color shift-O"></div><span><strong>O</strong> - 白班</span></div>
+                        <div class="legend-item"><div class="legend-color shift-N"></div><span><strong>N</strong> - 夜班</span></div>
+                        <div class="legend-item"><div class="legend-color shift-R"></div><span><strong>R</strong> - 急救室</span></div>
+                        <div class="legend-item"><div class="legend-color shift-C"></div><span><strong>C</strong> - 看診班</span></div>
+                        <div class="legend-item"><div class="legend-color shift-S"></div><span><strong>S</strong> - 外傷小夜</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: #ffdfdf; border: 1px solid #ffbaba;"></div><span><strong style="color: #d60000;">假</strong> - 預假</span></div>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <button onclick="convertToEditMode()" style="background: #17a2b8; border-color: #17a2b8;">🔄 轉換自動排班結果</button>
+                    <button onclick="clearAllShifts()" class="secondary">🗑️ 清空所有班別</button>
+                </div>
+            </div>
+            <div class="schedule-container">
+                <h3>📋 排班表編輯</h3>
+                <div id="alertContainer"></div>
+                <div id="editGrid" class="edit-grid"></div>
+                <div class="daily-stats">
+                    <h4 style="margin: 20px 0 10px 0;">📊 每日班別統計</h4>
+                    <div id="dailyStatsTable"></div>
+                </div>
+            </div>
+            <div style="padding: 20px;">
+                <h3>📊 個人工時詳細</h3>
+                <table class="workload-table" id="workloadTable">
+                    <thead>
+                        <tr><th>員工姓名</th><th>白(O)</th><th>夜(N)</th><th>急(R)</th><th>診(C)</th><th>小(S)</th><th>總班次</th><th>總工時</th><th>平均日工時</th></tr>
+                    </thead>
+                    <tbody id="workloadTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="schedule-container">
+            <h3>📋 排班表預覽</h3>
+            <div id="scheduleGrid" class="schedule-grid"></div>
+            <div class="stats" id="stats"></div>
+        </div>
+    </div>
+
+    <!-- 進度條彈窗 -->
+    <div id="progressOverlay" class="progress-overlay">
+        <div class="progress-box">
+            <h3>🧠 CP-SAT 深度運算中</h3>
+            <p>AI 正在分析數百萬種排班組合，以找出最公平且連續的解答...</p>
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <div id="progressText" class="progress-text">0%</div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+    class IntegratedScheduler {
+        constructor() {
+            this.staff = [];
+            this.schedule = {};
+            this.requirements = {};
+            this.currentMonth = '';
+            this.daysInMonth = 0;
+            this.currentMode = 'auto'; 
+            this.shiftHours = { 'O': 12, 'N': 12, 'R': 12, 'C': 8, 'S': 8 };
+            this.progressInterval = null;
+        }
+
+        init() {
+            this.updateMonth();
+            this.generateStaffList();
+            this.generateRequirements();
+            if (!this.schedule || Object.keys(this.schedule).length === 0) {
+                this.initializeEmptySchedule();
+            }
+            this.renderAll();
+        }
+
+updateMonth() {
+        // 如果 HTML 沒有選定月份，自動設定為下個月
+        const monthInput = document.getElementById('monthSelect');
+        if (!monthInput.value) {
+            const now = new Date();
+            // 設定為下個月 (now.getMonth() + 1)
+            // 注意：如果現在是 12 月，JavaScript 會自動進位到隔年 1 月
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            
+            // 格式化為 YYYY-MM
+            const year = nextMonth.getFullYear();
+            const month = (nextMonth.getMonth() + 1).toString().padStart(2, '0');
+            monthInput.value = `${year}-${month}`;
+        }
+        
+        this.currentMonth = monthInput.value;
+        const date = new Date(this.currentMonth + '-01');
+        this.daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+
+        getDayOfWeek(day) {
+            const date = new Date(this.currentMonth + '-' + day.toString().padStart(2, '0'));
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+            return dayNames[date.getDay()];
+        }
+
+        isWeekend(day) {
+            const date = new Date(this.currentMonth + '-' + day.toString().padStart(2, '0'));
+            const dayOfWeek = date.getDay();
+            return dayOfWeek === 0 || dayOfWeek === 6;
+        }
+
+        generateStaffList() {
+            this.updateMonth();
+            const count = parseInt(document.getElementById('staffCount').value);
+            const existingStaff = {};
+            this.staff.forEach(s => { existingStaff[s.id] = { name: s.name, leaveRequests: s.leaveRequests || [] }; });
+            this.staff = [];
+            const defaultNames = ['王醫師', '李醫師', '張醫師', '陳醫師', '林醫師', '黃醫師', '吳醫師', '劉醫師', '蔡醫師', '許醫師', '鄭醫師', '謝醫師'];
+            for (let i = 0; i < count; i++) {
+                if (existingStaff[i]) {
+                    this.staff.push({ id: i, name: existingStaff[i].name, leaveRequests: existingStaff[i].leaveRequests });
+                } else {
+                    this.staff.push({ id: i, name: defaultNames[i] || `醫師${i+1}`, leaveRequests: [] });
+                }
+            }
+            if (this.currentMode === 'auto') this.renderStaffGrid();
+            this.generateRequirements();
+        }
+
+        generateRequirements() {
+            this.requirements = {};
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                this.requirements[day] = { dayShift: 2, nightShift: day === this.daysInMonth ? 0 : 2 };
+            }
+            this.renderRequirements();
+        }
+
+        initializeEmptySchedule() {
+            this.schedule = {};
+            this.staff.forEach(staff => {
+                this.schedule[staff.id] = {};
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const isLeave = staff.leaveRequests.includes(day);
+                    if (this.currentMode === 'auto') {
+                        this.schedule[staff.id][day] = { dayShift: false, nightShift: false, leave: isLeave };
+                    } else {
+                        this.schedule[staff.id][day] = { shift: '', leave: isLeave };
+                    }
+                }
+            });
+        }
+
+        showProgress() {
+            const overlay = document.getElementById('progressOverlay');
+            const bar = document.getElementById('progressBar');
+            const text = document.getElementById('progressText');
+            overlay.style.display = 'flex';
+            bar.style.width = '0%';
+            text.innerText = '0%';
+            let progress = 0;
+            
+            this.progressInterval = setInterval(() => {
+                if (progress < 85) progress += Math.random() * 3;
+                else if (progress < 95) progress += 0.5;
+                
+                bar.style.width = `${Math.min(progress, 95)}%`;
+                text.innerText = `${Math.floor(Math.min(progress, 95))}%`;
+            }, 150);
+        }
+
+        hideProgress() {
+            clearInterval(this.progressInterval);
+            const overlay = document.getElementById('progressOverlay');
+            const bar = document.getElementById('progressBar');
+            const text = document.getElementById('progressText');
+            bar.style.width = '100%';
+            text.innerText = '100%';
+            setTimeout(() => { overlay.style.display = 'none'; }, 400);
+        }
+
+async generateSchedule() {
+        console.log('=== 開始呼叫 Python CP-SAT 進行智能排班 ===');
+        
+        const requestData = {
+            staff: this.staff,
+            requirements: this.requirements,
+            daysInMonth: this.daysInMonth
+        };
+
+        this.showProgress();
+
+        try {
+            const response = await fetch(`${window.APP_CONFIG.API_BASE_URL}/solve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            const result = await response.json();
+            this.hideProgress();
+
+            if (result.status === 'success') {
+                // 🔥 修正：保留原始的預假狀態，僅覆蓋班別
+                this.staff.forEach(staff => {
+                    for (let day = 1; day <= this.daysInMonth; day++) {
+                        const newAuto = result.schedule[staff.id][day];
+                        // 檢查該員工是否有預假
+                        const isLeave = staff.leaveRequests.includes(day);
+                        
+                        // 只更新班別，保留原有的請假狀態
+                        this.schedule[staff.id][day] = {
+                            dayShift: isLeave ? false : newAuto.dayShift,
+                            nightShift: isLeave ? false : newAuto.nightShift,
+                            leave: isLeave
+                        };
+                    }
+                });
+                
+                this.renderAll();
+                this.showAlert('✅ CP-SAT 排班完成，預假設定已完美保留！', 'success');
+            } else {
+                this.showAlert('❌ 排班失敗：' + result.message, 'error');
+            }
+        } catch (error) {
+            this.hideProgress();
+            this.showAlert('❌ 無法連線到後端！請確認 Python app.py 是否已啟動', 'error');
+        }
+    }
+        convertToEditMode() {
+            if (!this.schedule || Object.keys(this.schedule).length === 0) return;
+            const newSchedule = {};
+            this.staff.forEach(staff => {
+                newSchedule[staff.id] = {};
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const auto = this.schedule[staff.id][day];
+                    if (auto.leave) newSchedule[staff.id][day] = { shift: '', leave: true };
+                    else if (auto.dayShift) newSchedule[staff.id][day] = { shift: 'O', leave: false };
+                    else if (auto.nightShift) newSchedule[staff.id][day] = { shift: 'N', leave: false };
+                    else newSchedule[staff.id][day] = { shift: '', leave: false };
+                }
+            });
+            this.schedule = newSchedule;
+            this.currentMode = 'manual';
+            switchTab('manual');
+            this.showAlert('已轉換為手動編輯模式', 'success');
+        }
+
+        updateScheduleManual(staffId, day, value) {
+            if (value === 'leave') this.schedule[staffId][day] = { shift: '', leave: true };
+            else this.schedule[staffId][day] = { shift: value, leave: false };
+            this.renderEditMode();
+        }
+        
+        clearAllShifts() {
+            if (!confirm('確定要清空所有班別嗎？')) return;
+            this.staff.forEach(s => {
+                for (let d = 1; d <= this.daysInMonth; d++) {
+                    const isLeave = this.schedule[s.id][d].leave;
+                    this.schedule[s.id][d] = { shift: '', leave: isLeave };
+                }
+            });
+            this.renderEditMode();
+        }
+
+        calculateWorkload(staffId) {
+            const workload = { O: 0, N: 0, R: 0, C: 0, S: 0, totalShifts: 0, totalHours: 0 };
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const schedule = this.schedule[staffId][day];
+                if (schedule && schedule.shift && !schedule.leave) {
+                    workload[schedule.shift]++;
+                    workload.totalShifts++;
+                    workload.totalHours += this.shiftHours[schedule.shift];
+                }
+            }
+            workload.avgDailyHours = (workload.totalHours / this.daysInMonth).toFixed(1);
+            return workload;
+        }
+
+        renderStaffGrid() {
+            const grid = document.getElementById('staffGrid');
+            grid.innerHTML = '';
+            this.staff.forEach(staff => {
+                const card = document.createElement('div');
+                card.className = 'staff-card';
+                card.innerHTML = `
+                    <div class="staff-header">
+                        <div class="control-group" style="margin-bottom: 10px;">
+                            <label>員工姓名</label>
+                            <input type="text" value="${staff.name}" onchange="scheduler.updateStaffName(${staff.id}, this.value)" style="font-weight: 600; border: 2px solid #dee2e6;">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>預假日期 (以逗號分隔)</label>
+                        <input type="text" value="${staff.leaveRequests.join(',')}" onchange="scheduler.updateLeave(${staff.id}, this.value)" placeholder="如: 5,12,20">
+                    </div>
+                    <div class="leave-dates">
+                        ${staff.leaveRequests.map(date => `<span class="leave-tag">${date}日 預假</span>`).join('')}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        renderRequirements() {
+            const summary = document.getElementById('requirementsSummary');
+            let totalDay = 0, totalNight = 0;
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                totalDay += this.requirements[day].dayShift;
+                totalNight += this.requirements[day].nightShift;
+            }
+            summary.innerHTML = `
+                <div class="summary-card"><div class="summary-value">${totalDay}</div><div class="summary-label">總白班需求</div></div>
+                <div class="summary-card"><div class="summary-value">${totalNight}</div><div class="summary-label">總夜班需求</div></div>
+            `;
+            document.getElementById('leaveAnalysis').innerHTML = `<div class="leave-analysis"><h4>📊 請假分析</h4><p style="color: #28a745; margin: 0;">資料已同步連動</p></div>`;
+            
+            const grid = document.getElementById('requirementsGrid');
+            grid.innerHTML = '';
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const card = document.createElement('div');
+                card.className = `day-requirement ${this.isWeekend(day) ? 'weekend' : ''}`;
+                card.innerHTML = `
+                    <strong>${day} (${this.getDayOfWeek(day)})</strong>
+                    <div style="margin: 8px 0;">
+                        <label>白班</label>
+                        <input type="number" min="0" max="5" value="${this.requirements[day].dayShift}" onchange="scheduler.updateRequirement(${day}, 'dayShift', this.value)" style="width: 50px; margin-left: 5px;">
+                    </div>
+                    <div>
+                        <label>夜班</label>
+                        <input type="number" min="0" max="5" value="${this.requirements[day].nightShift}" onchange="scheduler.updateRequirement(${day}, 'nightShift', this.value)" style="width: 50px; margin-left: 5px;" ${day === this.daysInMonth ? 'disabled' : ''}>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        renderSchedule() {
+            const grid = document.getElementById('scheduleGrid');
+            grid.innerHTML = '';
+            if (!this.schedule || Object.keys(this.schedule).length === 0) return;
+            
+            grid.style.gridTemplateColumns = `80px repeat(${this.daysInMonth}, 1fr)`;
+            grid.appendChild(this.createCell('', 'grid-header'));
+            
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const cell = document.createElement('div');
+                cell.className = `day-header ${this.isWeekend(day) ? 'weekend' : ''}`;
+                cell.innerHTML = `<div class="day-number">${day}</div><div class="day-name">${this.getDayOfWeek(day)}</div>`;
+                grid.appendChild(cell);
+            }
+            
+            this.staff.forEach(staff => {
+                grid.appendChild(this.createCell(staff.name, 'staff-name'));
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const s = this.schedule[staff.id][day];
+                    let content = '', className = 'grid-cell';
+                    if (this.currentMode === 'auto') {
+                        if (s.leave) { className += ' leave-day'; content = '假'; }
+                        else if (s.dayShift) { className += ' shift-day'; content = 'O'; }
+                        else if (s.nightShift) { className += ' shift-night'; content = 'N'; }
+                    } else {
+                        if (s.leave) { className += ' leave'; content = '假'; }
+                        else if (s.shift) { className += ` shift-${s.shift}`; content = s.shift; }
+                    }
+                    grid.appendChild(this.createCell(content, className));
+                }
+            });
+        }
+
+        renderEditGrid() {
+            const grid = document.getElementById('editGrid');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `80px repeat(${this.daysInMonth}, minmax(30px, 1fr))`;
+            grid.appendChild(this.createCell('', 'edit-header'));
+            
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const cell = document.createElement('div');
+                cell.className = `day-header ${this.isWeekend(day) ? 'weekend' : ''}`;
+                cell.innerHTML = `<div class="day-number">${day}</div><div class="day-name">${this.getDayOfWeek(day)}</div>`;
+                grid.appendChild(cell);
+            }
+            
+            this.staff.forEach(staff => {
+                grid.appendChild(this.createCell(staff.name, 'staff-name'));
+                for (let day = 1; day <= this.daysInMonth; day++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'edit-cell';
+                    const s = this.schedule[staff.id][day];
+                    if (s.leave) cell.classList.add('leave');
+                    else if (s.shift) cell.classList.add(`shift-${s.shift}`);
+                    
+                    cell.innerHTML = `
+                        <select onchange="scheduler.updateScheduleManual(${staff.id}, ${day}, this.value)" ${s.leave ? 'style="background:#ffdfdf; color:#d60000; font-weight:bold;"' : ''}>
+                            <option value="" ${!s.shift && !s.leave ? 'selected' : ''}>-</option>
+                            <option value="O" ${s.shift === 'O' ? 'selected' : ''}>O</option>
+                            <option value="N" ${s.shift === 'N' ? 'selected' : ''}>N</option>
+                            <option value="R" ${s.shift === 'R' ? 'selected' : ''}>R</option>
+                            <option value="C" ${s.shift === 'C' ? 'selected' : ''}>C</option>
+                            <option value="S" ${s.shift === 'S' ? 'selected' : ''}>S</option>
+                            <option value="leave" ${s.leave ? 'selected' : ''}>假</option>
+                        </select>
+                    `;
+                    grid.appendChild(cell);
+                }
+            });
+        }
+        
+        renderEditMode() {
+            this.renderEditGrid();
+            this.renderDailyStats();
+            this.updateWorkloadTable();
+            this.renderSchedule();
+            this.renderStats();
+        }
+
+        renderDailyStats() {
+            const dailyStatsContainer = document.getElementById('dailyStatsTable');
+            if (!dailyStatsContainer) return;
+            const dailyStats = [];
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const stats = { O: 0, N: 0, R: 0, C: 0, S: 0 };
+                this.staff.forEach(staff => {
+                    const s = this.schedule[staff.id][day];
+                    if (s && s.shift && !s.leave) stats[s.shift]++;
+                });
+                dailyStats.push(stats);
+            }
+            const statsGrid = document.createElement('div');
+            statsGrid.className = 'edit-grid';
+            statsGrid.style.gridTemplateColumns = `80px repeat(${this.daysInMonth}, minmax(30px, 1fr))`;
+            statsGrid.appendChild(this.createCell('', 'edit-header'));
+            for (let day = 1; day <= this.daysInMonth; day++) {
+                const cell = document.createElement('div');
+                cell.className = `day-header ${this.isWeekend(day) ? 'weekend' : ''}`;
+                cell.innerHTML = `<div class="day-number">${day}</div><div class="day-name">${this.getDayOfWeek(day)}</div>`;
+                statsGrid.appendChild(cell);
+            }
+            const shifts = [{k:'O',c:'shift-O'},{k:'N',c:'shift-N'},{k:'R',c:'shift-R'},{k:'C',c:'shift-C'},{k:'S',c:'shift-S'}];
+            shifts.forEach(shift => {
+                statsGrid.appendChild(this.createCell(shift.k, 'staff-name'));
+                for (let day = 0; day < this.daysInMonth; day++) {
+                    statsGrid.appendChild(this.createCell(dailyStats[day][shift.k].toString(), `edit-cell ${shift.c}`));
+                }
+            });
+            dailyStatsContainer.innerHTML = '';
+            dailyStatsContainer.appendChild(statsGrid);
+        }
+
+        updateWorkloadTable() {
+            const tableBody = document.getElementById('workloadTableBody');
+            if (!tableBody) return;
+            const workloads = this.staff.map(staff => ({ name: staff.name, ...this.calculateWorkload(staff.id) }));
+            const avgHours = workloads.reduce((sum, w) => sum + w.totalHours, 0) / workloads.length;
+            tableBody.innerHTML = workloads.map(w => `
+                <tr ${w.totalHours > avgHours + 20 ? 'style="background:#ffebee;"' : w.totalHours < avgHours - 20 ? 'style="background:#e8f5e8;"' : ''}>
+                    <td><strong>${w.name}</strong></td><td>${w.O}</td><td>${w.N}</td><td>${w.R}</td><td>${w.C}</td><td>${w.S}</td>
+                    <td>${w.totalShifts}</td><td><strong>${w.totalHours}h</strong></td><td>${w.avgDailyHours}h</td>
+                </tr>`).join('');
+        }
+
+        renderStats() {
+            const stats = document.getElementById('stats');
+            if (!stats || !this.schedule || Object.keys(this.schedule).length === 0) { stats.innerHTML = ''; return; }
+            let totalShifts = 0, totalHours = 0;
+            const shiftCounts = { O: 0, N: 0, R: 0, C: 0, S: 0 };
+            const workloads = [];
+            this.staff.forEach(staff => {
+                const w = this.calculateWorkload(staff.id);
+                workloads.push(w);
+                totalShifts += w.totalShifts; totalHours += w.totalHours;
+                Object.keys(shiftCounts).forEach(k => shiftCounts[k] += w[k]);
+            });
+            const avgHours = (totalHours / this.staff.length).toFixed(1);
+            const hours = workloads.map(w => w.totalHours);
+            stats.innerHTML = `
+                <div class="stat-card"><div class="stat-value">${this.staff.length}</div><div>總員工</div></div>
+                <div class="stat-card"><div class="stat-value">${totalShifts}</div><div>總班次</div></div>
+                <div class="stat-card"><div class="stat-value">${totalHours}</div><div>總工時</div></div>
+                <div class="stat-card"><div class="stat-value">${avgHours}</div><div>平均工時</div></div>
+                <div class="stat-card"><div class="stat-value">${Math.max(...hours) - Math.min(...hours)}</div><div>工時差異</div></div>
+            `;
+        }
+
+        createCell(content, className) {
+            const cell = document.createElement('div');
+            cell.className = className;
+            cell.textContent = content;
+            return cell;
+        }
+
+        updateStaffName(staffId, newName) {
+            if (newName && newName.trim()) {
+                this.staff[staffId].name = newName.trim();
+                this.renderSchedule();
+            }
+        }
+
+        updateLeave(staffId, leaveStr) {
+            const leaves = leaveStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 1 && n <= this.daysInMonth);
+            this.staff[staffId].leaveRequests = leaves;
+            
+            // 即時同步至排班表核心資料
+            if (this.schedule && this.schedule[staffId]) {
+                for (let d = 1; d <= this.daysInMonth; d++) {
+                    const isLeave = leaves.includes(d);
+                    this.schedule[staffId][d].leave = isLeave;
+                    if (isLeave && this.currentMode === 'manual') {
+                        this.schedule[staffId][d].shift = ''; // 如果是手動模式，自動清空當天班別
+                    }
+                }
+            }
+            
+            this.renderStaffGrid();
+            if (this.currentMode === 'auto') {
+                this.renderSchedule();
+            } else {
+                this.renderEditMode();
+            }
+        }
+
+        updateRequirement(day, shift, value) {
+            this.requirements[day][shift] = parseInt(value);
+            this.renderRequirements();
+        }
+
+        showAlert(message, type) {
+            const container = document.getElementById('alertContainer') || document.body;
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.style.position = 'fixed'; alert.style.top = '20px'; alert.style.right = '20px'; alert.style.zIndex = '9999';
+            alert.innerHTML = message;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+        
+        renderAll() {
+            if (this.currentMode === 'auto') {
+                this.renderStaffGrid();
+                this.renderRequirements();
+                this.renderSchedule();
+            } else {
+                this.renderEditMode();
+            }
+        }
+    }
+
+    const scheduler = new IntegratedScheduler();
+    function generateStaffList() { scheduler.generateStaffList(); }
+    function generateSchedule() { scheduler.generateSchedule(); } 
+    function convertToEditMode() { scheduler.convertToEditMode(); }
+    function clearAllShifts() { scheduler.clearAllShifts(); }
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        if (tabName === 'auto') {
+            document.getElementById('autoTab').classList.add('active');
+            document.querySelector('.tab-button:first-child').classList.add('active');
+            scheduler.currentMode = 'auto';
+            scheduler.renderAll();
+        } else if (tabName === 'manual') {
+            document.getElementById('manualTab').classList.add('active');
+            document.querySelector('.tab-button:last-child').classList.add('active');
+            scheduler.currentMode = 'manual';
+            scheduler.renderEditMode();
+        }
+    }
+    function toggleSection(sectionName) {
+        const content = document.getElementById(sectionName + '-content');
+        const icon = document.getElementById(sectionName + '-icon');
+        if (content.classList.contains('collapsed')) {
+            content.classList.remove('collapsed'); icon.classList.remove('collapsed'); icon.textContent = '▼';
+        } else {
+            content.classList.add('collapsed'); icon.classList.add('collapsed'); icon.textContent = '▶';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => scheduler.init());
+    document.getElementById('monthSelect').addEventListener('change', () => scheduler.init());
+    </script>
+</body>
+</html>
