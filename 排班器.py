@@ -433,6 +433,37 @@ def find_alternative_schedule(view: str) -> None:
     st.session_state["active_schedule_index"] = len(st.session_state["schedule_options"]) - 1
 
 
+def collect_best_schedules(payload: dict, maximum: int = 20, progress=None) -> tuple[list[dict], str | None]:
+    """先求最佳目標值，再列舉最多 maximum 組具有相同目標值的不同班表。"""
+    if progress:
+        progress(0, maximum, "正在尋找第一組最佳班表…")
+    first = solve(payload)
+    if first["status"] not in {"OPTIMAL", "FEASIBLE"}:
+        return [first], None
+    # 時限內僅得到可行解時，不把它誤稱為「所有最佳解」。
+    if first["status"] != "OPTIMAL":
+        return [first], "首次搜尋在時限內僅得到 FEASIBLE；已保留目前最佳班表，未列舉替代方案。"
+
+    options = [first]
+    history = [first["schedule"]]
+    while len(options) < maximum:
+        if progress:
+            progress(len(options), maximum, f"已找到 {len(options)} 組最佳班表，正在找下一組…")
+        alternative_payload = dict(payload)
+        alternative_payload["target_objective"] = first["objective"]
+        alternative_payload["excluded_schedules"] = history
+        alternative = solve(alternative_payload)
+        if alternative["status"] not in {"OPTIMAL", "FEASIBLE"}:
+            break
+        options.append(alternative)
+        history.append(alternative["schedule"])
+
+    message = None
+    if len(options) < maximum:
+        message = f"已找完所有可找到的同品質最佳班表，共 {len(options)} 組。"
+    return options, message
+
+
 def render_schedule_navigation(active: int, options: list[dict], view: str) -> None:
     left, label, right = st.columns([1, 4, 1])
     left.button("<", key=f"solution-prev-{view}", disabled=active == 0, use_container_width=True, on_click=change_active_schedule, args=(-1, view))
@@ -441,7 +472,7 @@ def render_schedule_navigation(active: int, options: list[dict], view: str) -> N
     st.button(
         "換一個同品質最佳班表",
         key=f"alternative-{view}",
-        disabled=st.session_state["schedule_result"]["status"] != "OPTIMAL",
+        disabled=st.session_state["schedule_result"]["status"] != "OPTIMAL" or len(options) >= 20,
         use_container_width=True,
         on_click=find_alternative_schedule,
         args=(view,),
@@ -605,17 +636,32 @@ def render() -> None:
         else:
             st.caption(f"目前設定：全月約 {profile['target']} 個 24 小時班的軟目標；硬性規則優先。")
         if st.button("產生 CP-SAT 班表", type="primary", use_container_width=True):
-            with st.spinner("正在尋找最佳班表…"):
-                result = solve(payload)
+            progress_bar = st.progress(0, text="正在準備最佳班表搜尋…")
+            with st.status("正在尋找最佳班表與替代方案…", expanded=True) as status_box:
+                def update_progress(found: int, maximum: int, message: str) -> None:
+                    progress_bar.progress(int(found / maximum * 100), text=message)
+                    status_box.write(message)
+
+                options, search_note = collect_best_schedules(payload, maximum=20, progress=update_progress)
+                result = options[0]
+                if result["status"] == "OPTIMAL":
+                    final_message = f"完成：共找到 {len(options)} 組同品質最佳班表。"
+                elif result["status"] == "FEASIBLE":
+                    final_message = "完成：已找到目前可行班表。"
+                else:
+                    final_message = "完成：找不到符合所有硬性規則的班表。"
+                progress_bar.progress(100, text=final_message)
+                status_box.update(label=final_message, state="complete", expanded=False)
             if result["status"] not in {"OPTIMAL", "FEASIBLE"}:
                 st.error("；".join(result.get("warnings", [result["status"]]))); return
             st.session_state["schedule_result"] = result
             st.session_state["schedule_payload"] = payload
             st.session_state["schedule_raw"] = raw
             st.session_state["schedule_name"] = file.name
-            st.session_state["schedule_history"] = [result["schedule"]]
+            st.session_state["schedule_history"] = [item["schedule"] for item in options]
             st.session_state["schedule_best_objective"] = result["objective"]
-            st.session_state["schedule_options"] = [result]
+            st.session_state["schedule_options"] = options
+            st.session_state["initial_search_note"] = search_note
             st.session_state["active_schedule_index"] = 0
             st.session_state["result_view"] = "每日班表"
             st.rerun()
@@ -632,6 +678,9 @@ def render() -> None:
     active = st.session_state.get("active_schedule_index", 0)
     stats, violations = validate_result(payload, result)
     st.success(f"{result['status']}｜目標值 {result['objective']:.0f}｜耗時 {result['solve_time_seconds']:.1f} 秒")
+    initial_search_note = st.session_state.pop("initial_search_note", None)
+    if initial_search_note:
+        st.info(initial_search_note)
     if st.session_state.pop("alternative_warning", None):
         st.warning("已找不到另一個具有相同目標值的班表。")
     view = st.radio("結果檢視", ["每日班表", "醫師月曆", "結果驗證"], horizontal=True, label_visibility="collapsed", key="result_view")
