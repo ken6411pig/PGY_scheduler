@@ -8,6 +8,7 @@ if ($app.Count -ne 1) { throw "Could not locate exactly one scheduler app" }
   --name "standalone-scheduler" `
   --add-data "$($app[0].FullName);." `
   --collect-all streamlit `
+  --collect-all pyarrow `
   --collect-binaries ortools `
   --hidden-import openpyxl `
   --hidden-import openpyxl.styles `
@@ -21,6 +22,5 @@ if ($app.Count -ne 1) { throw "Could not locate exactly one scheduler app" }
   --exclude-module torchaudio `
   --exclude-module tensorflow `
   --exclude-module cv2 `
-  --exclude-module pyarrow `
   --exclude-module transformers `
   "$root\standalone_launcher.py"
