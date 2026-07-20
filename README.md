@@ -50,6 +50,13 @@ pip install streamlit ortools openpyxl python-docx
 
 要啟用 GitHub Pages，請在 GitHub 專案的 **Settings → Pages** 選擇本備份分支 `backup/streamlit-cpsat-2026-07-20` 與 `/docs` 資料夾。啟用後，先雙擊 `本機求解器.py`，它便會開啟網頁介面。
 
+### 下載檔案
+
+- `scheduler.exe`：供 GitHub Pages 呼叫的本機 CP-SAT 求解器。
+- `standalone-scheduler.exe`：包含完整 Streamlit 介面的單機版排班器。
+
+要建立第二種檔案，執行 `封裝單機版.ps1`，完成後將 `dist\\standalone-scheduler.exe` 上傳至 GitHub Release；網頁按鈕已指向這個檔名。
+
 ## 結果閱讀
 
 「醫師月曆」右側可點選醫師，該醫師所有班別會標亮。結果驗證頁會檢查目標班數、預假、夜接白、急專六日規則、指定班與支援配額。

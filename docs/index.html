@@ -21,7 +21,7 @@
 <body><main>
   <h1>急診排班器</h1><p class="sub">GitHub Pages 介面｜CP-SAT 運算、Excel 與 Word 產生皆在此電腦完成。</p>
   <div id="service-status" class="status">正在檢查本機求解器…</div>
-  <a id="install-agent" class="download install-action hidden" href="https://github.com/ken6411pig/PGY_scheduler/releases/latest/download/scheduler.exe">下載本機求解器（Windows）</a>
+  <div id="install-actions" class="hidden"><a id="install-agent" class="download install-action" href="https://github.com/ken6411pig/PGY_scheduler/releases/latest/download/scheduler.exe">下載本機求解器（網頁版）</a> <a class="download install-action secondary" href="https://github.com/ken6411pig/PGY_scheduler/releases/latest/download/standalone-scheduler.exe">下載單機版排班器</a></div>
 
   <section id="setup" class="card"><h2>班數分配預覽</h2>
     <label for="workbook">選擇 Excel 班表資料</label><input id="workbook" type="file" accept=".xlsx">
@@ -48,7 +48,7 @@ const escapeHtml=value=>{const box=document.createElement('span');box.textConten
 const toleranceInfo={0:'目前設定：強烈避免 24 小時班。',25:'目前設定：全月約 1 個 24 小時班的軟目標；硬性規則優先。',50:'目前設定：全月約 2 個 24 小時班的軟目標；硬性規則優先。',75:'目前設定：全月約 4 個 24 小時班的軟目標；硬性規則優先。',100:'目前設定：全月約 6 個 24 小時班的軟目標；硬性規則優先。'};
 async function api(path,body,asBlob=false){const response=await fetch(endpoint+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!response.ok){let data={};try{data=await response.json()}catch{}throw Error(data.error||(data.warnings||[]).join('；')||'本機求解器發生錯誤')}return asBlob?response.blob():response.json()}
 function updateService(text,kind){const box=$('#service-status');box.textContent=text;box.className=`status ${kind}`}
-async function checkService(){try{const response=await fetch(endpoint+'/health');if(!response.ok)throw Error();state.ready=true;updateService('本機求解器已連線，班表會使用此電腦的 CPU 運算。','ready');$('#install-agent').classList.add('hidden');updateSolveButton()}catch{state.ready=false;updateService('找不到本機求解器。請先下載、解壓縮並開啟本機元件，再重新整理此頁面。','error');$('#install-agent').classList.remove('hidden');updateSolveButton()}}
+async function checkService(){try{const response=await fetch(endpoint+'/health');if(!response.ok)throw Error();state.ready=true;updateService('本機求解器已連線，班表會使用此電腦的 CPU 運算。','ready');$('#install-actions').classList.add('hidden');updateSolveButton()}catch{state.ready=false;updateService('找不到本機求解器。可下載本機求解器使用網頁版，或下載完整單機版。','error');$('#install-actions').classList.remove('hidden');updateSolveButton()}}
 function updateSolveButton(){$('#solve').disabled=!(state.ready&&state.workbook)}
 function fileToBase64(file){return file.arrayBuffer().then(buffer=>{let binary='';for(const value of new Uint8Array(buffer))binary+=String.fromCharCode(value);return btoa(binary)})}
 function total(rows,type){return rows.filter(row=>row['類別']===type).reduce((sum,row)=>sum+Number(row['目標班數']),0)}
