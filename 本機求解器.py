@@ -13,6 +13,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import quote
 
 HOST, PORT = "127.0.0.1", 8765
 PAGES_ORIGIN = "https://ken6411pig.github.io"
@@ -83,7 +84,9 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
-        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        # HTTP 標頭只支援 Latin-1；以 RFC 5987 保留中文下載檔名，避免連線中斷。
+        fallback = "schedule" + Path(filename).suffix
+        self.send_header("Content-Disposition", f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename)}")
         self.send_cors_headers(origin)
         self.end_headers()
         self.wfile.write(content)
