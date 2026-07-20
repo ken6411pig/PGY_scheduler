@@ -417,6 +417,12 @@ def change_active_schedule(delta: int, view: str) -> None:
     st.session_state["result_view"] = view
 
 
+def return_to_tolerance_settings() -> None:
+    """保留原始 Excel，回到班數預覽與 24 小時班容忍度設定。"""
+    st.session_state.pop("schedule_result", None)
+    st.session_state.pop("highlight_doctor", None)
+
+
 def find_alternative_schedule(view: str) -> None:
     payload = st.session_state["schedule_payload"]
     alternative_payload = dict(payload)
@@ -585,9 +591,15 @@ def render() -> None:
     if not has_result:
         st.caption("離線 CP-SAT 排班｜上傳 Excel、確認配額、產生班表")
         file = st.file_uploader("選擇 Excel 班表資料", type="xlsx")
-        if not file: return
+        if file:
+            raw, source_name = file.getvalue(), file.name
+        elif "schedule_raw" in st.session_state:
+            # 從結果頁返回時保留同一份資料，不必再次選檔。
+            raw, source_name = st.session_state["schedule_raw"], st.session_state.get("schedule_name", "班表資料.xlsx")
+        else:
+            return
         try:
-            raw = file.getvalue(); payload = make_payload(BytesIO(raw)); rows = preview_rows(payload)
+            payload = make_payload(BytesIO(raw)); rows = preview_rows(payload)
         except Exception as exc:
             st.error(str(exc)); return
         st.markdown("""
@@ -623,7 +635,7 @@ def render() -> None:
         tolerance = st.select_slider(
             "24 小時班容忍度",
             options=[0, 25, 50, 75, 100],
-            value=50,
+            value=st.session_state.get("schedule_tolerance", 50),
             format_func=lambda value: tolerance_labels[value],
             help="長假 7 天以上者只放寬該醫師；100 會主動偏好 24 小時班。",
         )
@@ -657,13 +669,14 @@ def render() -> None:
             st.session_state["schedule_result"] = result
             st.session_state["schedule_payload"] = payload
             st.session_state["schedule_raw"] = raw
-            st.session_state["schedule_name"] = file.name
+            st.session_state["schedule_name"] = source_name
+            st.session_state["schedule_tolerance"] = tolerance
             st.session_state["schedule_history"] = [item["schedule"] for item in options]
             st.session_state["schedule_best_objective"] = result["objective"]
             st.session_state["schedule_options"] = options
             st.session_state["initial_search_note"] = search_note
             st.session_state["active_schedule_index"] = 0
-            st.session_state["result_view"] = "每日班表"
+            st.session_state["result_view"] = "醫師月曆"
             st.rerun()
         else:
             return
@@ -677,13 +690,17 @@ def render() -> None:
     st.session_state.setdefault("schedule_best_objective", options[0]["objective"])
     active = st.session_state.get("active_schedule_index", 0)
     stats, violations = validate_result(payload, result)
-    st.success(f"{result['status']}｜目標值 {result['objective']:.0f}｜耗時 {result['solve_time_seconds']:.1f} 秒")
+    action_col, status_col = st.columns([1, 3])
+    with action_col:
+        st.button("← 返回調整容忍度", use_container_width=True, on_click=return_to_tolerance_settings)
+    with status_col:
+        st.success(f"{result['status']}｜目標值 {result['objective']:.0f}｜耗時 {result['solve_time_seconds']:.1f} 秒")
     initial_search_note = st.session_state.pop("initial_search_note", None)
     if initial_search_note:
         st.info(initial_search_note)
     if st.session_state.pop("alternative_warning", None):
         st.warning("已找不到另一個具有相同目標值的班表。")
-    view = st.radio("結果檢視", ["每日班表", "醫師月曆", "結果驗證"], horizontal=True, label_visibility="collapsed", key="result_view")
+    view = st.radio("結果檢視", ["醫師月曆", "每日班表", "結果驗證"], horizontal=True, label_visibility="collapsed", key="result_view")
     if view == "每日班表":
         render_schedule_navigation(active, options, view)
         st.dataframe(result["schedule"], use_container_width=True, hide_index=True)
