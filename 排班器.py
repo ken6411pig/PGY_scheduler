@@ -120,8 +120,10 @@ def solve(payload: dict) -> dict:
     objective = []
     double_shift_penalty = int(payload.get("double_shift_penalty", 100))
     for p in names:
-        if double_shift_penalty > 0 and not has_long_leave(set(by_name[p].get("leave_dates", []))):
-            objective.extend(double_shift_penalty * doubles[p, i] for i in range(len(days)))
+        # 有連休 7 天以上者只放寬本人；其他醫師依容忍度套用正／負權重。
+        penalty = 0 if has_long_leave(set(by_name[p].get("leave_dates", []))) else double_shift_penalty
+        if penalty != 0:
+            objective.extend(penalty * doubles[p, i] for i in range(len(days)))
         for i in range(len(days)):
             left_off = 1 if i == 0 else 1 - work[p, i - 1]
             right_off = 1 if i == len(days) - 1 else 1 - work[p, i + 1]
@@ -560,15 +562,23 @@ def render() -> None:
         c.metric("外援鎖定班數", sum(r["目標班數"] for r in rows if r["類別"] == "外援"))
         d.metric("支援分配班數", sum(r["目標班數"] for r in rows if r["類別"] == "支援"))
         st.dataframe(rows, use_container_width=True, hide_index=True, height=480)
-        tolerance = st.slider(
+        tolerance_labels = {
+            0: "0：強烈避免",
+            25: "25：可接受少量",
+            50: "50：容許約 1–2 個",
+            75: "75：容許較常出現",
+            100: "100：主動偏好用 24 小時班換取較完整休息／長假",
+        }
+        penalty_by_tolerance = {0: 200, 25: 80, 50: 25, 75: 5, 100: -20}
+        tolerance = st.select_slider(
             "24 小時班容忍度",
-            min_value=0,
-            max_value=100,
+            options=[0, 25, 50, 75, 100],
             value=50,
-            help="0＝強烈避免同日白夜班；100＝可完全接受。長假 7 天以上者仍不受此懲罰。",
+            format_func=lambda value: tolerance_labels[value],
+            help="長假 7 天以上者只放寬該醫師；100 會主動偏好 24 小時班。",
         )
-        payload["double_shift_penalty"] = (100 - tolerance) * 2
-        st.caption(f"目前設定：{tolerance}／100（24 小時班懲罰權重：{payload['double_shift_penalty']}）")
+        payload["double_shift_penalty"] = penalty_by_tolerance[tolerance]
+        st.caption(f"目前設定：{tolerance_labels[tolerance]}（24 小時班權重：{payload['double_shift_penalty']}）")
         if st.button("產生 CP-SAT 班表", type="primary", use_container_width=True):
             with st.spinner("正在尋找最佳班表…"):
                 result = solve(payload)
