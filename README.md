@@ -42,11 +42,11 @@ pip install streamlit ortools openpyxl python-docx
 
 首次按下「產生 CP-SAT 班表」時，程式會先找出最佳目標值，再自動收集最多 20 組具有相同目標值、且至少有一班不同的班表。畫面會顯示搜尋進度；若實際最佳方案少於 20 組，便會提早完成。
 
-## GitHub Pages + 本機求解器（原型）
+## GitHub Pages + 本機求解器
 
-`docs/index.html` 是可部署至 GitHub Pages 的靜態網頁；`本機求解器.py` 則在使用者電腦啟動 CP-SAT。使用者先開啟本機求解器，再於 GitHub Pages 選擇 Excel，運算與資料處理均留在使用者電腦。求解器只監聽 `127.0.0.1`，且只允許本專案 GitHub Pages 網址呼叫。
+`docs/index.html` 是可部署至 GitHub Pages 的完整排班介面；`本機求解器.py` 則在使用者電腦啟動 CP-SAT。使用者先開啟本機求解器，再於 GitHub Pages 選擇 Excel，運算與資料處理均留在使用者電腦。求解器只監聽 `127.0.0.1`，且只允許本專案 GitHub Pages 網址呼叫。
 
-目前這是原型：使用者仍需先安裝 Python 套件並開啟 `本機求解器.py`。正式發佈時可將本機求解器封裝為 Windows 安裝程式，再從 GitHub Releases 下載。
+網頁版包含班數預覽、24 小時班容忍度、最多 20 組最佳班表、醫師月曆與標亮、每日班表、急專班數統計、硬性規則驗證，以及 Excel／Word 下載。使用者仍需先安裝 Python 套件並開啟 `本機求解器.py`；正式發佈時可將本機求解器封裝為 Windows 安裝程式，再從 GitHub Releases 下載。
 
 要啟用 GitHub Pages，請在 GitHub 專案的 **Settings → Pages** 選擇本備份分支 `backup/streamlit-cpsat-2026-07-20` 與 `/docs` 資料夾。啟用後，先雙擊 `本機求解器.py`，它便會開啟網頁介面。
 

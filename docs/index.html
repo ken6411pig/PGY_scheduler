@@ -1,60 +1,66 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>急診排班器</title>
   <style>
-    :root { color-scheme: light; font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: #18324a; background: #f3f7fa; }
-    body { margin: 0; } main { max-width: 1050px; margin: auto; padding: 42px 24px 64px; }
-    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:26px; }
-    h1 { margin:0; font-size:2rem; } h2 { margin-top:0; } .sub { color:#587084; margin:8px 0 0; }
-    .card { background:white; box-shadow:0 9px 30px #16324a14; border-radius:16px; padding:28px; margin:18px 0; }
-    .status { border-radius:10px; padding:13px 16px; background:#eef4f8; color:#37556e; font-weight:600; }
-    .status.ready { background:#e5f6ed; color:#17643b; } .status.error { background:#fdebec; color:#9b2630; }
-    label { display:block; font-weight:700; margin:20px 0 8px; } input[type=file], select, button { font:inherit; }
-    input[type=file], select { width:100%; box-sizing:border-box; padding:11px; border:1px solid #b9c8d4; border-radius:8px; background:white; }
-    button { margin-top:24px; border:0; border-radius:9px; padding:12px 20px; background:#176b9b; color:white; cursor:pointer; font-weight:700; }
-    button:disabled { opacity:.55; cursor:wait; } .hidden { display:none; } .spinner { display:inline-block; width:14px; height:14px; border:2px solid #bdd7e7; border-top-color:#176b9b; border-radius:50%; animation:spin .8s linear infinite; margin-right:8px; } @keyframes spin { to { transform:rotate(360deg) } }
-    .nav { display:flex; align-items:center; justify-content:center; gap:16px; margin:20px 0; } .nav button { margin:0; min-width:48px; } table { width:100%; border-collapse:collapse; margin-top:15px; } th, td { padding:9px; border:1px solid #d5e0e7; text-align:center; } th { background:#e9f0f5; } .small { color:#607789; font-size:.9rem; }
+    :root { font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif; color:#18324a; background:#f5f8fa; }
+    * { box-sizing:border-box } body { margin:0 } main { max-width:1320px; margin:auto; padding:30px 24px 60px }
+    h1 { margin:0; font-size:2rem } h2 { margin:0 0 16px } h3 { margin:22px 0 10px } .sub,.muted { color:#607789 } .sub { margin:7px 0 22px }
+    .card { background:#fff; border-radius:14px; padding:24px; box-shadow:0 8px 24px #173c5614; margin:18px 0 } .hidden { display:none!important }
+    .status { border-radius:10px; padding:13px 16px; background:#edf3f7; color:#405d72; font-weight:700; margin-bottom:18px }.ready{background:#e4f5ea;color:#17643b}.error{background:#fbeaec;color:#962932}
+    label { display:block; margin:16px 0 7px; font-weight:700 } input[type=file],select { width:100%; padding:11px; border:1px solid #b9c8d4; border-radius:8px; background:#fff; font:inherit }
+    button,.download { font:inherit; color:#fff; background:#176b9b; border:0; border-radius:8px; padding:10px 15px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block } button:hover,.download:hover{background:#10577e}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#637b8d}.secondary:hover{background:#506775}.danger{background:#8e5360}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.metric{border:1px solid #dce5eb;border-radius:10px;padding:14px}.metric span{display:block;color:#607789;font-size:.9rem}.metric strong{font-size:1.7rem}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #d5e0e7;padding:8px;text-align:center;white-space:nowrap}th{background:#e9f0f5} .left{text-align:left}
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between}.tabs{display:flex;gap:7px;border-bottom:1px solid #d5e0e7;margin:20px 0}.tab{color:#496276;background:transparent;border-radius:8px 8px 0 0}.tab.active{background:#176b9b;color:#fff}.solution-nav{display:flex;justify-content:center;align-items:center;gap:13px;margin:12px 0}.solution-nav button{min-width:46px}.solution-label{font-weight:700;min-width:240px;text-align:center}
+    .result-layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(150px,1fr);gap:15px}.doctor-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start}.doctor-list button{padding:7px 4px;font-size:.85rem;background:#69859a}.doctor-list button.active{background:#bd7a1b}
+    .schedule-calendar{table-layout:fixed;font-size:15px}.schedule-calendar th,.schedule-calendar td{padding:4px;height:30px}.schedule-calendar thead th{background:#4f81bd;color:#fff}.schedule-calendar tbody th{background:#f7f9fb;width:62px}.schedule-calendar .date-row td,.schedule-calendar .date-row th{background:#dce6f1;font-weight:700}.schedule-calendar .weekend{background:#3f70ad}.doctor-highlight{background:#fff2a8!important;color:#7a2e00;font-weight:700}.validation-good{color:#19713f;font-weight:700}.validation-bad{color:#a02732;font-weight:700}.spinner{display:inline-block;width:15px;height:15px;border:2px solid #c7dce8;border-top-color:#176b9b;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite;margin-right:7px}@keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:760px){main{padding:20px 12px}.metrics{grid-template-columns:repeat(2,1fr)}.result-layout{grid-template-columns:1fr}.doctor-list{grid-template-columns:repeat(3,1fr)}.schedule-calendar{font-size:12px}.schedule-calendar th,.schedule-calendar td{padding:3px 1px}.topbar{align-items:stretch;flex-direction:column}}
   </style>
 </head>
 <body><main>
-  <header><div><h1>急診排班器</h1><p class="sub">班表運算在您的電腦進行，Excel 不會上傳到網站。</p></div></header>
+  <h1>急診排班器</h1><p class="sub">GitHub Pages 介面｜CP-SAT 運算、Excel 與 Word 產生皆在此電腦完成。</p>
   <div id="service-status" class="status">正在檢查本機求解器…</div>
-  <section class="card"><h2>產生班表</h2>
-    <label for="workbook">Excel 班表資料</label><input id="workbook" type="file" accept=".xlsx">
-    <label for="tolerance">24 小時班容忍度</label><select id="tolerance">
-      <option value="0">0：強烈避免</option><option value="25">25：可接受少量</option><option value="50" selected>50：容許約 1–2 個</option><option value="75">75：容許較常出現</option><option value="100">100：主動偏好</option>
-    </select>
-    <button id="solve" disabled>產生最多 20 組最佳班表</button>
-    <p id="progress" class="small"></p>
+
+  <section id="setup" class="card"><h2>班數分配預覽</h2>
+    <label for="workbook">選擇 Excel 班表資料</label><input id="workbook" type="file" accept=".xlsx">
+    <div id="preview" class="hidden"><div id="metrics" class="metrics"></div><div class="table-wrap"><table><thead><tr><th>姓名</th><th>類別</th><th>目標班數</th><th>平日</th><th>假日</th></tr></thead><tbody id="preview-body"></tbody></table></div></div>
+    <label for="tolerance">24 小時班容忍度</label><select id="tolerance"><option value="0">0：強烈避免</option><option value="25">25：可接受少量</option><option value="50" selected>50：容許約 1–2 個</option><option value="75">75：容許較常出現</option><option value="100">100：主動偏好用 24 小時班換取較完整休息／長假</option></select>
+    <p id="tolerance-note" class="muted">目前設定：全月約 2 個 24 小時班的軟目標；硬性規則優先。</p>
+    <button id="solve" disabled>產生最多 20 組最佳班表</button><p id="progress" class="muted"></p>
   </section>
-  <section id="results" class="card hidden"><h2 id="result-title">班表結果</h2><p id="result-note" class="small"></p>
-    <div class="nav"><button id="previous">&lt;</button><strong id="solution-label"></strong><button id="next">&gt;</button></div>
-    <table><thead><tr><th>日期</th><th>白班</th><th>夜班</th></tr></thead><tbody id="schedule"></tbody></table>
-  </section>
-</main><script>
-const endpoint = 'http://127.0.0.1:8765';
-const statusBox = document.querySelector('#service-status'), solveButton = document.querySelector('#solve');
-let options = [], selected = 0;
-async function checkService() {
-  try { const reply = await fetch(`${endpoint}/health`); if (!reply.ok) throw Error();
-    statusBox.textContent = '本機求解器已連線，班表會使用此電腦的 CPU 運算。'; statusBox.className = 'status ready'; solveButton.disabled = false;
-  } catch { statusBox.textContent = '找不到本機求解器。請先下載並開啟「本機求解器」。'; statusBox.className = 'status error'; solveButton.disabled = true; }
-}
-function base64(file) { return file.arrayBuffer().then(buffer => { let binary=''; const bytes=new Uint8Array(buffer); for (const byte of bytes) binary += String.fromCharCode(byte); return btoa(binary); }); }
-function escapeHtml(value) { const box=document.createElement('span'); box.textContent=String(value); return box.innerHTML; }
-function showOption() { const option=options[selected]; document.querySelector('#solution-label').textContent = `方案 ${selected+1} / ${options.length}｜目標值 ${Math.round(option.objective)}`;
-  document.querySelector('#schedule').innerHTML = option.schedule.map(row => `<tr><td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.D)}</td><td>${escapeHtml(row.N)}</td></tr>`).join('');
-  document.querySelector('#previous').disabled = selected===0; document.querySelector('#next').disabled = selected===options.length-1;
-}
-document.querySelector('#solve').addEventListener('click', async () => {
-  const file=document.querySelector('#workbook').files[0], progress=document.querySelector('#progress'); if (!file) { progress.textContent='請先選擇 Excel 檔案。'; return; }
-  solveButton.disabled=true; progress.innerHTML='<span class="spinner"></span>正在由本機 CP-SAT 尋找最多 20 組最佳班表，請稍候…';
-  try { const response=await fetch(`${endpoint}/solve`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({workbook_base64:await base64(file), tolerance:Number(document.querySelector('#tolerance').value)})}); const data=await response.json(); if (!response.ok) throw Error(data.error || (data.warnings||[]).join('；') || '求解失敗');
-    options=data.options; selected=0; document.querySelector('#result-title').textContent=`${data.year} 年 ${data.month} 月班表結果`; document.querySelector('#result-note').textContent=data.note || `共找到 ${options.length} 組最佳班表，總運算時間 ${data.solve_time_seconds.toFixed(1)} 秒。`; document.querySelector('#results').classList.remove('hidden'); showOption(); progress.textContent='完成。';
-  } catch (error) { progress.textContent=`無法排班：${error.message}`; } finally { solveButton.disabled=false; }
-});
-document.querySelector('#previous').onclick=()=>{selected--;showOption()}; document.querySelector('#next').onclick=()=>{selected++;showOption()}; checkService(); setInterval(checkService, 5000);
+
+  <section id="results" class="hidden"><div class="card"><div class="topbar"><div id="solve-summary" class="status ready"></div><button id="back" class="secondary">← 返回調整容忍度</button></div><p id="result-note" class="muted"></p>
+    <div class="tabs"><button class="tab active" data-view="calendar">醫師月曆</button><button class="tab" data-view="daily">每日班表</button><button class="tab" data-view="validation">結果驗證</button></div>
+    <div class="solution-nav"><button id="previous">&lt;</button><div id="solution-label" class="solution-label"></div><button id="next">&gt;</button></div>
+    <div id="calendar-view" class="view"><div class="result-layout"><div class="table-wrap"><table id="calendar" class="schedule-calendar"></table></div><aside><h3>點選醫師標亮</h3><div id="doctor-list" class="doctor-list"></div></aside></div></div>
+    <div id="daily-view" class="view hidden"><div class="table-wrap"><table><thead><tr><th>日期</th><th>白班</th><th>夜班</th></tr></thead><tbody id="daily-body"></tbody></table></div></div>
+    <div id="validation-view" class="view hidden"><h3>急專醫師班數統計</h3><div class="table-wrap"><table><thead><tr><th>姓名</th><th>目標</th><th>實排</th><th>白班</th><th>夜班</th><th>假日</th><th>24 小時班</th><th>結果</th></tr></thead><tbody id="stats-body"></tbody></table></div><h3>硬性規則驗證</h3><div id="violation-summary"></div><div class="table-wrap"><table id="violations-table" class="hidden"><thead><tr><th>類型</th><th>醫師</th><th>日期</th><th>說明</th></tr></thead><tbody id="violations-body"></tbody></table></div></div>
+    <hr style="border:0;border-top:1px solid #dbe5eb;margin:28px 0 18px"><button id="excel-download">下載班表 Excel</button> <button id="word-download" class="secondary">下載 Word 值班表</button><span id="download-status" class="muted"></span>
+  </div></section>
+</main>
+<script>
+const endpoint='http://127.0.0.1:8765';
+const state={ready:false,workbook:null,filename:'',payload:null,previewRows:[],options:[],active:0,stats:[],violations:[],highlight:null,view:'calendar'};
+const $=selector=>document.querySelector(selector); const $$=selector=>[...document.querySelectorAll(selector)];
+const escapeHtml=value=>{const box=document.createElement('span');box.textContent=String(value??'');return box.innerHTML};
+const toleranceInfo={0:'目前設定：強烈避免 24 小時班。',25:'目前設定：全月約 1 個 24 小時班的軟目標；硬性規則優先。',50:'目前設定：全月約 2 個 24 小時班的軟目標；硬性規則優先。',75:'目前設定：全月約 4 個 24 小時班的軟目標；硬性規則優先。',100:'目前設定：全月約 6 個 24 小時班的軟目標；硬性規則優先。'};
+async function api(path,body,asBlob=false){const response=await fetch(endpoint+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!response.ok){let data={};try{data=await response.json()}catch{}throw Error(data.error||(data.warnings||[]).join('；')||'本機求解器發生錯誤')}return asBlob?response.blob():response.json()}
+function updateService(text,kind){const box=$('#service-status');box.textContent=text;box.className=`status ${kind}`}
+async function checkService(){try{const response=await fetch(endpoint+'/health');if(!response.ok)throw Error();state.ready=true;updateService('本機求解器已連線，班表會使用此電腦的 CPU 運算。','ready');updateSolveButton()}catch{state.ready=false;updateService('找不到本機求解器。請先安裝並開啟本機元件，再重新整理此頁面。','error');updateSolveButton()}}
+function updateSolveButton(){$('#solve').disabled=!(state.ready&&state.workbook)}
+function fileToBase64(file){return file.arrayBuffer().then(buffer=>{let binary='';for(const value of new Uint8Array(buffer))binary+=String.fromCharCode(value);return btoa(binary)})}
+function total(rows,type){return rows.filter(row=>row['類別']===type).reduce((sum,row)=>sum+Number(row['目標班數']),0)}
+function renderPreview(){const days=new Date(state.payload.year,state.payload.month,0).getDate(),rows=state.previewRows;$('#preview').classList.remove('hidden');$('#metrics').innerHTML=[['本月總班數',days*2],['急專目標班數',total(rows,'急專')],['外援鎖定班數',total(rows,'外援')],['支援分配班數',total(rows,'支援')]].map(([name,value])=>`<div class="metric"><span>${name}</span><strong>${value}</strong></div>`).join('');$('#preview-body').innerHTML=rows.map(row=>`<tr><td>${escapeHtml(row['姓名'])}</td><td>${escapeHtml(row['類別'])}</td><td>${row['目標班數']}</td><td>${row['平日']}</td><td>${row['假日']}</td></tr>`).join('')}
+async function previewWorkbook(){if(!state.workbook||!state.ready)return;$('#progress').innerHTML='<span class="spinner"></span>正在讀取 Excel 與計算配額…';try{const data=await api('/preview',{workbook_base64:state.workbook,tolerance:Number($('#tolerance').value)});state.payload=data.payload;state.previewRows=data.rows;renderPreview();$('#progress').textContent=''}catch(error){$('#preview').classList.add('hidden');$('#progress').textContent=`無法讀取檔案：${error.message}`}}
+function current(){return state.options[state.active]}
+function renderNavigation(){const option=current();$('#solution-label').textContent=`現在方案 ${state.active+1} / ${state.options.length}｜目標值 ${Math.round(option.objective)}`;$('#previous').disabled=state.active===0;$('#next').disabled=state.active===state.options.length-1}
+function renderDaily(){ $('#daily-body').innerHTML=current().schedule.map(row=>`<tr><td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.D)}</td><td>${escapeHtml(row.N)}</td></tr>`).join('') }
+function dateKey(year,month,day){return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`}
+function renderCalendar(){const {year,month,doctors}=state.payload,byDate=Object.fromEntries(current().schedule.map(row=>[row.date,row])),first=new Date(year,month-1,1),start=new Date(year,month-1,1-(first.getDay()+6)%7),last=new Date(year,month,0),end=new Date(last);end.setDate(last.getDate()+(7-(last.getDay()+6)%7)%7);let html='<thead><tr><th></th>'+['一','二','三','四','五','六','日'].map((name,i)=>`<th class="${i>4?'weekend':''}">${name}</th>`).join('')+'</tr></thead><tbody>';for(let cursor=new Date(start);cursor<=end;cursor.setDate(cursor.getDate()+7)){const week=[0,1,2,3,4,5,6].map(offset=>{const day=new Date(cursor);day.setDate(cursor.getDate()+offset);return day});html+='<tr class="date-row"><th></th>'+week.map(day=>`<td>${day.getMonth()+1===month?day.getDate():''}</td>`).join('')+'</tr>';for(const [shift,label] of [['D','白班'],['N','夜班']]){html+=`<tr><th>${label}</th>`+week.map(day=>{if(day.getMonth()+1!==month)return'<td></td>';const name=byDate[dateKey(year,month,day.getDate())][shift];return`<td class="${name===state.highlight?'doctor-highlight':''}">${escapeHtml(name)}</td>`}).join('')+'</tr>'}}html+='</tbody>';$('#calendar').innerHTML=html;$('#doctor-list').innerHTML=doctors.map(doctor=>`<button class="${doctor.name===state.highlight?'active':''}" data-doctor="${escapeHtml(doctor.name)}">${escapeHtml(doctor.name)}</button>`).join('');$$('[data-doctor]').forEach(button=>button.onclick=()=>{state.highlight=state.highlight===button.dataset.doctor?null:button.dataset.doctor;renderCalendar()})}
+function renderValidation(){const er=state.stats.filter(row=>row['類別']==='急專');$('#stats-body').innerHTML=er.map(row=>`<tr><td>${escapeHtml(row['姓名'])}</td><td>${row['目標']}</td><td>${row['實排']}</td><td>${row['白班']}</td><td>${row['夜班']}</td><td>${row['假日']}</td><td>${row['24 小時班']}</td><td class="${row['結果']==='通過'?'validation-good':'validation-bad'}">${escapeHtml(row['結果'])}</td></tr>`).join('');const invalid=state.violations.length>0;$('#violation-summary').innerHTML=invalid?`<span class="validation-bad">發現 ${state.violations.length} 項需審核的違規。</span>`:'<span class="validation-good">所有硬性規則驗證通過。</span>';$('#violations-table').classList.toggle('hidden',!invalid);$('#violations-body').innerHTML=state.violations.map(row=>`<tr><td>${escapeHtml(row['類型'])}</td><td>${escapeHtml(row['醫師'])}</td><td>${escapeHtml(row['日期'])}</td><td class="left">${escapeHtml(row['說明'])}</td></tr>`).join('')}
+function renderResult(){renderNavigation();renderCalendar();renderDaily();renderValidation();$$('.view').forEach(view=>view.classList.add('hidden'));$(`#${state.view}-view`).classList.remove('hidden');$$('.tab').forEach(tab=>tab.classList.toggle('active',tab.dataset.view===state.view))}
+async function solve(){if(!state.workbook)return;$('#solve').disabled=true;$('#progress').innerHTML='<span class="spinner"></span>正在由本機 CP-SAT 尋找最多 20 組最佳班表，請稍候…';try{const data=await api('/solve',{workbook_base64:state.workbook,tolerance:Number($('#tolerance').value)});Object.assign(state,{payload:data.payload,options:data.options,active:0,stats:data.stats,violations:data.violations,highlight:null,view:'calendar'});$('#solve-summary').textContent=`${data.status}｜目標值 ${Math.round(data.objective)}｜耗時 ${data.solve_time_seconds.toFixed(1)} 秒`;$('#result-note').textContent=data.note||`共找到 ${data.options.length} 組同品質最佳班表。`;$('#setup').classList.add('hidden');$('#results').classList.remove('hidden');renderResult();$('#progress').textContent=''}catch(error){$('#progress').textContent=`無法排班：${error.message}`}finally{updateSolveButton()}}
+async function download(kind){const status=$('#download-status');status.innerHTML='<span class="spinner"></span>正在由本機建立檔案…';try{const blob=await api(`/export/${kind}`,{workbook_base64:state.workbook,payload:state.payload,result:current()},true);const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=kind==='excel'?'CP-SAT班表.xlsx':'急診值班表.docx';link.click();URL.revokeObjectURL(link.href);status.textContent='下載完成。'}catch(error){status.textContent=`下載失敗：${error.message}`}}
+$('#workbook').onchange=async event=>{const file=event.target.files[0];if(!file)return;state.filename=file.name;$('#progress').innerHTML='<span class="spinner"></span>正在準備 Excel…';state.workbook=await fileToBase64(file);updateSolveButton();previewWorkbook()};$('#tolerance').onchange=()=>{$('#tolerance-note').textContent=toleranceInfo[$('#tolerance').value];previewWorkbook()};$('#solve').onclick=solve;$('#previous').onclick=()=>{state.active--;renderResult()};$('#next').onclick=()=>{state.active++;renderResult()};$('#back').onclick=()=>{$('#results').classList.add('hidden');$('#setup').classList.remove('hidden');window.scrollTo(0,0)};$$('.tab').forEach(tab=>tab.onclick=()=>{state.view=tab.dataset.view;renderResult()});$('#excel-download').onclick=()=>download('excel');$('#word-download').onclick=()=>download('word');checkService();setInterval(checkService,5000);
 </script></body></html>

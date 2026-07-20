@@ -73,6 +73,27 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def send_file(self, content: bytes, content_type: str, filename: str, origin: str | None) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        if origin and allowed_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.end_headers()
+        self.wfile.write(content)
+
+    def read_request(self) -> dict:
+        length = int(self.headers.get("Content-Length", "0"))
+        if not 0 < length <= 15 * 1024 * 1024:
+            raise ValueError("Excel 檔案大小需介於 1 byte 至 15 MB")
+        return json.loads(self.rfile.read(length).decode("utf-8"))
+
+    @staticmethod
+    def raw_workbook(request: dict) -> bytes:
+        return base64.b64decode(request["workbook_base64"], validate=True)
+
     def do_OPTIONS(self) -> None:
         origin = self.headers.get("Origin")
         if not allowed_origin(origin):
@@ -92,31 +113,37 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
         if not allowed_origin(origin):
             self.send_json(403, {"error": "不允許的網站來源"})
             return
-        if self.path != "/solve":
-            self.send_json(404, {"error": "找不到路徑"}, origin)
-            return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if not 0 < length <= 15 * 1024 * 1024:
-                raise ValueError("Excel 檔案大小需介於 1 byte 至 15 MB")
-            request = json.loads(self.rfile.read(length).decode("utf-8"))
-            raw = base64.b64decode(request["workbook_base64"], validate=True)
-            tolerance = int(request.get("tolerance", 50))
-            payload = payload_with_tolerance(raw, tolerance)
-            options, note = scheduler.collect_best_schedules(payload, maximum=20)
-            first = options[0]
-            if first["status"] not in {"OPTIMAL", "FEASIBLE"}:
-                self.send_json(422, {"status": first["status"], "warnings": first.get("warnings", [])}, origin)
-                return
-            self.send_json(200, {
-                "status": first["status"],
-                "objective": first["objective"],
-                "solve_time_seconds": sum(item["solve_time_seconds"] for item in options),
-                "options": options,
-                "note": note,
-                "year": payload["year"],
-                "month": payload["month"],
-            }, origin)
+            request = self.read_request()
+            if self.path == "/preview":
+                raw = self.raw_workbook(request)
+                payload = payload_with_tolerance(raw, int(request.get("tolerance", 50)))
+                self.send_json(200, {"payload": payload, "rows": scheduler.preview_rows(payload)}, origin)
+            elif self.path == "/solve":
+                raw = self.raw_workbook(request)
+                tolerance = int(request.get("tolerance", 50))
+                payload = payload_with_tolerance(raw, tolerance)
+                options, note = scheduler.collect_best_schedules(payload, maximum=20)
+                first = options[0]
+                if first["status"] not in {"OPTIMAL", "FEASIBLE"}:
+                    self.send_json(422, {"status": first["status"], "warnings": first.get("warnings", [])}, origin)
+                    return
+                stats, violations = scheduler.validate_result(payload, first)
+                self.send_json(200, {
+                    "status": first["status"], "objective": first["objective"],
+                    "solve_time_seconds": sum(item["solve_time_seconds"] for item in options),
+                    "options": options, "note": note, "payload": payload,
+                    "stats": stats, "violations": violations,
+                }, origin)
+            elif self.path == "/export/excel":
+                raw = self.raw_workbook(request)
+                content = scheduler.export_workbook(raw, request["result"], request["payload"])
+                self.send_file(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "CP-SAT班表.xlsx", origin)
+            elif self.path == "/export/word":
+                content = scheduler.export_docx(request["payload"], request["result"])
+                self.send_file(content, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "急診值班表.docx", origin)
+            else:
+                self.send_json(404, {"error": "找不到路徑"}, origin)
         except Exception as exc:
             self.send_json(400, {"error": str(exc)}, origin)
 
