@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>急診排班器</title>
+  <style>
+    :root { color-scheme: light; font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: #18324a; background: #f3f7fa; }
+    body { margin: 0; } main { max-width: 1050px; margin: auto; padding: 42px 24px 64px; }
+    header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:26px; }
+    h1 { margin:0; font-size:2rem; } h2 { margin-top:0; } .sub { color:#587084; margin:8px 0 0; }
+    .card { background:white; box-shadow:0 9px 30px #16324a14; border-radius:16px; padding:28px; margin:18px 0; }
+    .status { border-radius:10px; padding:13px 16px; background:#eef4f8; color:#37556e; font-weight:600; }
+    .status.ready { background:#e5f6ed; color:#17643b; } .status.error { background:#fdebec; color:#9b2630; }
+    label { display:block; font-weight:700; margin:20px 0 8px; } input[type=file], select, button { font:inherit; }
+    input[type=file], select { width:100%; box-sizing:border-box; padding:11px; border:1px solid #b9c8d4; border-radius:8px; background:white; }
+    button { margin-top:24px; border:0; border-radius:9px; padding:12px 20px; background:#176b9b; color:white; cursor:pointer; font-weight:700; }
+    button:disabled { opacity:.55; cursor:wait; } .hidden { display:none; } .spinner { display:inline-block; width:14px; height:14px; border:2px solid #bdd7e7; border-top-color:#176b9b; border-radius:50%; animation:spin .8s linear infinite; margin-right:8px; } @keyframes spin { to { transform:rotate(360deg) } }
+    .nav { display:flex; align-items:center; justify-content:center; gap:16px; margin:20px 0; } .nav button { margin:0; min-width:48px; } table { width:100%; border-collapse:collapse; margin-top:15px; } th, td { padding:9px; border:1px solid #d5e0e7; text-align:center; } th { background:#e9f0f5; } .small { color:#607789; font-size:.9rem; }
+  </style>
+</head>
+<body><main>
+  <header><div><h1>急診排班器</h1><p class="sub">班表運算在您的電腦進行，Excel 不會上傳到網站。</p></div></header>
+  <div id="service-status" class="status">正在檢查本機求解器…</div>
+  <section class="card"><h2>產生班表</h2>
+    <label for="workbook">Excel 班表資料</label><input id="workbook" type="file" accept=".xlsx">
+    <label for="tolerance">24 小時班容忍度</label><select id="tolerance">
+      <option value="0">0：強烈避免</option><option value="25">25：可接受少量</option><option value="50" selected>50：容許約 1–2 個</option><option value="75">75：容許較常出現</option><option value="100">100：主動偏好</option>
+    </select>
+    <button id="solve" disabled>產生最多 20 組最佳班表</button>
+    <p id="progress" class="small"></p>
+  </section>
+  <section id="results" class="card hidden"><h2 id="result-title">班表結果</h2><p id="result-note" class="small"></p>
+    <div class="nav"><button id="previous">&lt;</button><strong id="solution-label"></strong><button id="next">&gt;</button></div>
+    <table><thead><tr><th>日期</th><th>白班</th><th>夜班</th></tr></thead><tbody id="schedule"></tbody></table>
+  </section>
+</main><script>
+const endpoint = 'http://127.0.0.1:8765';
+const statusBox = document.querySelector('#service-status'), solveButton = document.querySelector('#solve');
+let options = [], selected = 0;
+async function checkService() {
+  try { const reply = await fetch(`${endpoint}/health`); if (!reply.ok) throw Error();
+    statusBox.textContent = '本機求解器已連線，班表會使用此電腦的 CPU 運算。'; statusBox.className = 'status ready'; solveButton.disabled = false;
+  } catch { statusBox.textContent = '找不到本機求解器。請先下載並開啟「本機求解器」。'; statusBox.className = 'status error'; solveButton.disabled = true; }
+}
+function base64(file) { return file.arrayBuffer().then(buffer => { let binary=''; const bytes=new Uint8Array(buffer); for (const byte of bytes) binary += String.fromCharCode(byte); return btoa(binary); }); }
+function escapeHtml(value) { const box=document.createElement('span'); box.textContent=String(value); return box.innerHTML; }
+function showOption() { const option=options[selected]; document.querySelector('#solution-label').textContent = `方案 ${selected+1} / ${options.length}｜目標值 ${Math.round(option.objective)}`;
+  document.querySelector('#schedule').innerHTML = option.schedule.map(row => `<tr><td>${escapeHtml(row.date)}</td><td>${escapeHtml(row.D)}</td><td>${escapeHtml(row.N)}</td></tr>`).join('');
+  document.querySelector('#previous').disabled = selected===0; document.querySelector('#next').disabled = selected===options.length-1;
+}
+document.querySelector('#solve').addEventListener('click', async () => {
+  const file=document.querySelector('#workbook').files[0], progress=document.querySelector('#progress'); if (!file) { progress.textContent='請先選擇 Excel 檔案。'; return; }
+  solveButton.disabled=true; progress.innerHTML='<span class="spinner"></span>正在由本機 CP-SAT 尋找最多 20 組最佳班表，請稍候…';
+  try { const response=await fetch(`${endpoint}/solve`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({workbook_base64:await base64(file), tolerance:Number(document.querySelector('#tolerance').value)})}); const data=await response.json(); if (!response.ok) throw Error(data.error || (data.warnings||[]).join('；') || '求解失敗');
+    options=data.options; selected=0; document.querySelector('#result-title').textContent=`${data.year} 年 ${data.month} 月班表結果`; document.querySelector('#result-note').textContent=data.note || `共找到 ${options.length} 組最佳班表，總運算時間 ${data.solve_time_seconds.toFixed(1)} 秒。`; document.querySelector('#results').classList.remove('hidden'); showOption(); progress.textContent='完成。';
+  } catch (error) { progress.textContent=`無法排班：${error.message}`; } finally { solveButton.disabled=false; }
+});
+document.querySelector('#previous').onclick=()=>{selected--;showOption()}; document.querySelector('#next').onclick=()=>{selected++;showOption()}; checkService(); setInterval(checkService, 5000);
+</script></body></html>
