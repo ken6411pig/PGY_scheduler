@@ -124,6 +124,17 @@ def solve(payload: dict) -> dict:
         penalty = 0 if has_long_leave(set(by_name[p].get("leave_dates", []))) else double_shift_penalty
         if penalty != 0:
             objective.extend(penalty * doubles[p, i] for i in range(len(days)))
+    # 容忍度的軟目標：避免所有正懲罰檔位都退化成「盡量 0 個 24 小時班」。
+    desired_doubles = payload.get("desired_double_shifts")
+    desired_weight = int(payload.get("desired_double_shifts_weight", 0))
+    if desired_doubles is not None and desired_weight > 0:
+        total_doubles = model.NewIntVar(0, len(days) * 2, "total_doubles")
+        model.Add(total_doubles == sum(doubles.values()))
+        difference = model.NewIntVar(0, len(days) * 2, "double_target_difference")
+        model.AddAbsEquality(difference, total_doubles - int(desired_doubles))
+        objective.append(desired_weight * difference)
+
+    for p in names:
         for i in range(len(days)):
             left_off = 1 if i == 0 else 1 - work[p, i - 1]
             right_off = 1 if i == len(days) - 1 else 1 - work[p, i + 1]
@@ -569,7 +580,15 @@ def render() -> None:
             75: "75：容許較常出現",
             100: "100：主動偏好用 24 小時班換取較完整休息／長假",
         }
-        penalty_by_tolerance = {0: 200, 25: 80, 50: 25, 75: 5, 100: -20}
+        # 每一段皆有不同的「全月 24 小時班軟目標」，避免 0–50 都只排成 0 班。
+        # 長假醫師仍只會放寬他本人的逐班懲罰，並不會影響其他人。
+        double_profiles = {
+            0: {"penalty": 200, "target": 0, "target_weight": 0},
+            25: {"penalty": 15, "target": 1, "target_weight": 50},
+            50: {"penalty": 10, "target": 2, "target_weight": 50},
+            75: {"penalty": 5, "target": 4, "target_weight": 45},
+            100: {"penalty": -5, "target": 6, "target_weight": 35},
+        }
         tolerance = st.select_slider(
             "24 小時班容忍度",
             options=[0, 25, 50, 75, 100],
@@ -577,8 +596,14 @@ def render() -> None:
             format_func=lambda value: tolerance_labels[value],
             help="長假 7 天以上者只放寬該醫師；100 會主動偏好 24 小時班。",
         )
-        payload["double_shift_penalty"] = penalty_by_tolerance[tolerance]
-        st.caption(f"目前設定：{tolerance_labels[tolerance]}（24 小時班權重：{payload['double_shift_penalty']}）")
+        profile = double_profiles[tolerance]
+        payload["double_shift_penalty"] = profile["penalty"]
+        payload["desired_double_shifts"] = profile["target"]
+        payload["desired_double_shifts_weight"] = profile["target_weight"]
+        if tolerance == 0:
+            st.caption("目前設定：強烈避免 24 小時班。")
+        else:
+            st.caption(f"目前設定：全月約 {profile['target']} 個 24 小時班的軟目標；硬性規則優先。")
         if st.button("產生 CP-SAT 班表", type="primary", use_container_width=True):
             with st.spinner("正在尋找最佳班表…"):
                 result = solve(payload)
