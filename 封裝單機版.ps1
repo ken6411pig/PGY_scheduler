@@ -1,9 +1,12 @@
-# 建立完整 Streamlit 單機版；完成檔案在 dist\standalone-scheduler.exe。
+# Build the standalone Streamlit scheduler. Output: dist\standalone-scheduler.exe
 $py = "C:\Users\YUHSIN\AppData\Local\Programs\Python\Python312\python.exe"
+$root = $PSScriptRoot
+$app = Get-ChildItem -LiteralPath $root -Filter "*.py" | Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match "st\.set_page_config" }
+if ($app.Count -ne 1) { throw "Could not locate exactly one scheduler app" }
 
 & $py -m PyInstaller --noconfirm --clean --onefile `
   --name "standalone-scheduler" `
-  --add-data "排班器.py;." `
+  --add-data "$($app[0].FullName);." `
   --collect-all streamlit `
   --collect-binaries ortools `
   --hidden-import openpyxl `
@@ -20,4 +23,4 @@ $py = "C:\Users\YUHSIN\AppData\Local\Programs\Python\Python312\python.exe"
   --exclude-module cv2 `
   --exclude-module pyarrow `
   --exclude-module transformers `
-  "單機版排班器.py"
+  "$root\standalone_launcher.py"

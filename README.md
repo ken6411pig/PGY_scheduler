@@ -55,7 +55,7 @@ pip install streamlit ortools openpyxl python-docx
 - `scheduler.exe`：供 GitHub Pages 呼叫的本機 CP-SAT 求解器。
 - `standalone-scheduler.exe`：包含完整 Streamlit 介面的單機版排班器。
 
-要建立第二種檔案，執行 `封裝單機版.ps1`，完成後將 `dist\\standalone-scheduler.exe` 上傳至 GitHub Release；網頁按鈕已指向這個檔名。
+要建立第二種檔案，執行 `封裝單機版.ps1`，完成後將 `dist\\standalone-scheduler.exe` 上傳至 GitHub Release；網頁按鈕已指向這個檔名。封裝流程使用英文啟動器，避免 Windows PowerShell 讀取中文檔名時發生編碼錯誤。
 
 ## 結果閱讀
 
