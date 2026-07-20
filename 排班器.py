@@ -721,7 +721,9 @@ def render() -> None:
         with doctor_col:
             st.caption("點選醫師標亮")
             name_cols = st.columns(2)
-            for pos, doctor in enumerate(payload["doctors"]):
+            scheduled_names = {name for row in result["schedule"] for name in (row["D"], row["N"])}
+            scheduled_doctors = [doctor for doctor in payload["doctors"] if doctor["name"] in scheduled_names]
+            for pos, doctor in enumerate(scheduled_doctors):
                 name = doctor["name"]
                 name_cols[pos % 2].button(
                     name,
