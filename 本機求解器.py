@@ -9,7 +9,6 @@ import importlib.util
 import json
 import os
 import sys
-import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
@@ -158,8 +157,6 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
 def main() -> None:
     print("急診排班器本機求解器已啟動。請保持此視窗開啟。")
     print(f"僅接受 GitHub Pages 網頁：{PAGES_URL}")
-    if "--no-browser" not in sys.argv:
-        webbrowser.open(PAGES_URL)
     server = ThreadingHTTPServer((HOST, PORT), LocalSolverHandler)
     try:
         server.serve_forever()

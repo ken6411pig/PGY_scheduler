@@ -48,7 +48,7 @@ pip install streamlit ortools openpyxl python-docx
 
 網頁版包含班數預覽、24 小時班容忍度、最多 20 組最佳班表、醫師月曆與標亮、每日班表、急專班數統計、硬性規則驗證，以及 Excel／Word 下載。使用者仍需先安裝 Python 套件並開啟 `本機求解器.py`；正式發佈時可將本機求解器封裝為 Windows 安裝程式，再從 GitHub Releases 下載。
 
-要啟用 GitHub Pages，請在 GitHub 專案的 **Settings → Pages** 選擇本備份分支 `backup/streamlit-cpsat-2026-07-20` 與 `/docs` 資料夾。啟用後，先雙擊 `本機求解器.py`，它便會開啟網頁介面。
+要啟用 GitHub Pages，請在 GitHub 專案的 **Settings → Pages** 選擇本備份分支 `backup/streamlit-cpsat-2026-07-20` 與 `/docs` 資料夾。啟用後，先在瀏覽器開啟網頁介面，再雙擊 `本機求解器.py`；求解器會留在背景提供運算，不會另外開啟網頁。
 
 ### 下載檔案
 
