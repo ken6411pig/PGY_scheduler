@@ -480,14 +480,6 @@ def render_schedule_navigation(active: int, options: list[dict], view: str) -> N
     left.button("<", key=f"solution-prev-{view}", disabled=active == 0, use_container_width=True, on_click=change_active_schedule, args=(-1, view))
     label.markdown(f"<div style='text-align:center; padding:0.45rem; font-weight:700;'>現在方案 {active + 1} / {len(options)}｜目標值 {options[active]['objective']:.0f}</div>", unsafe_allow_html=True)
     right.button(">", key=f"solution-next-{view}", disabled=active == len(options) - 1, use_container_width=True, on_click=change_active_schedule, args=(1, view))
-    st.button(
-        "換一個同品質最佳班表",
-        key=f"alternative-{view}",
-        disabled=st.session_state["schedule_result"]["status"] != "OPTIMAL" or len(options) >= 20,
-        use_container_width=True,
-        on_click=find_alternative_schedule,
-        args=(view,),
-    )
 
 
 def export_workbook(original: bytes, result: dict, payload: dict) -> bytes:
