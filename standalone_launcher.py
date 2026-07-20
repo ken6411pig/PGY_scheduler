@@ -16,7 +16,10 @@ def main() -> None:
     sys.argv = [
         "streamlit", "run", str(candidates[0]),
         "--server.address=127.0.0.1",
+        "--server.port=8501",
         "--server.headless=false",
+        "--browser.serverAddress=127.0.0.1",
+        "--browser.serverPort=8501",
         "--browser.gatherUsageStats=false",
     ]
     raise SystemExit(streamlit_cli.main())
