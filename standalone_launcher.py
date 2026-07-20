@@ -15,6 +15,7 @@ def main() -> None:
         raise RuntimeError("找不到唯一的排班器主程式")
     sys.argv = [
         "streamlit", "run", str(candidates[0]),
+        "--global.developmentMode=false",
         "--server.address=127.0.0.1",
         "--server.port=8501",
         "--server.headless=false",
