@@ -9,6 +9,7 @@
     h1 { margin:0; font-size:2rem } h2 { margin:0 0 16px } h3 { margin:22px 0 10px } .sub,.muted { color:#607789 } .sub { margin:7px 0 22px }
     .card { background:#fff; border-radius:14px; padding:24px; box-shadow:0 8px 24px #173c5614; margin:18px 0 } .hidden { display:none!important }
     .status { border-radius:10px; padding:13px 16px; background:#edf3f7; color:#405d72; font-weight:700; margin-bottom:18px }.ready{background:#e4f5ea;color:#17643b}.error{background:#fbeaec;color:#962932}.install-action{margin-top:10px}
+    .instructions{margin:14px 0 18px;border:1px solid #d5e0e7;border-radius:10px;background:#fff}.instructions summary{padding:12px 15px;font-weight:700;color:#355d77;cursor:pointer}.instructions ol{margin:0;padding:0 34px 16px;line-height:1.8;color:#405d72}
     label { display:block; margin:16px 0 7px; font-weight:700 } input[type=file],select { width:100%; padding:11px; border:1px solid #b9c8d4; border-radius:8px; background:#fff; font:inherit }
     button,.download { font:inherit; color:#fff; background:#176b9b; border:0; border-radius:8px; padding:10px 15px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-block } button:hover,.download:hover{background:#10577e}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#637b8d}.secondary:hover{background:#506775}.danger{background:#8e5360}
     .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.metric{border:1px solid #dce5eb;border-radius:10px;padding:14px}.metric span{display:block;color:#607789;font-size:.9rem}.metric strong{font-size:1.7rem}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #d5e0e7;padding:8px;text-align:center;white-space:nowrap}th{background:#e9f0f5} .left{text-align:left}
@@ -19,9 +20,10 @@
   </style>
 </head>
 <body><main>
-  <h1>急診排班器</h1><p class="sub">GitHub Pages 介面｜CP-SAT 運算、Excel 與 Word 產生皆在此電腦完成。</p>
+  <h1>急診排班器</h1>
   <div id="service-status" class="status">正在檢查本機求解器…</div>
   <div id="install-actions" class="hidden"><a id="install-agent" class="download install-action" href="https://github.com/ken6411pig/PGY_scheduler/releases/latest/download/scheduler.exe">下載本機求解器（網頁版）</a> <a class="download install-action secondary" href="https://github.com/ken6411pig/PGY_scheduler/releases/latest/download/standalone-scheduler.exe">下載單機版排班器</a></div>
+  <details class="instructions"><summary>使用說明</summary><ol><li>先啟動本機求解器；首次使用請先下載並執行，保持程式開啟。</li><li>選擇 Excel 檔案，系統會先顯示班數分配預覽。</li><li>選擇 24 小時班容忍度，按下「產生最多 20 組最佳班表」。</li><li>用左右箭頭切換方案，於醫師月曆、每日班表與結果驗證中審核。</li><li>點選醫師姓名可標亮其在目前方案的所有班別。</li><li>確認後可下載 Excel 或 Word 值班表。</li></ol></details>
 
   <section id="setup" class="card"><h2>班數分配預覽</h2>
     <label for="workbook">選擇 Excel 班表資料</label><input id="workbook" type="file" accept=".xlsx">
