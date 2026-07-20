@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import importlib.util
 import json
+import os
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,6 +20,7 @@ PAGES_URL = "https://ken6411pig.github.io/PGY_scheduler/"
 
 
 def load_scheduler():
+    os.environ["ER_SCHEDULER_LOCAL_AGENT"] = "1"
     path = Path(__file__).with_name("排班器.py")
     spec = importlib.util.spec_from_file_location("er_scheduler", path)
     if spec is None or spec.loader is None:
@@ -58,18 +60,22 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         print(f"[{self.log_date_time_string()}] {fmt % args}")
 
-    def send_json(self, status: int, body: dict, origin: str | None = None) -> None:
-        encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(encoded)))
+    def send_cors_headers(self, origin: str | None) -> None:
         if origin and allowed_origin(origin):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
-            # 允許 HTTPS 網頁安全地呼叫本機 loopback 服務（Chrome PNA preflight）。
+            self.send_header("Access-Control-Expose-Headers", "Content-Disposition, Content-Type")
+            # Chrome 的 Private Network Access 預檢與實際回應皆保留此標頭。
             self.send_header("Access-Control-Allow-Private-Network", "true")
+
+    def send_json(self, status: int, body: dict, origin: str | None = None) -> None:
+        encoded = json.dumps(body, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.send_cors_headers(origin)
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -78,9 +84,7 @@ class LocalSolverHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
-        if origin and allowed_origin(origin):
-            self.send_header("Access-Control-Allow-Origin", origin)
-            self.send_header("Vary", "Origin")
+        self.send_cors_headers(origin)
         self.end_headers()
         self.wfile.write(content)
 

@@ -10,11 +10,16 @@ from datetime import date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 
-import streamlit as st
+if os.environ.get("ER_SCHEDULER_LOCAL_AGENT") == "1":
+    # GitHub Pages 的本機求解器只使用下方 CP-SAT／匯出函式，不需要載入 Streamlit。
+    st = None
+    def get_script_run_ctx(): return None
+else:
+    import streamlit as st
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from ortools.sat.python import cp_model
-from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 SHIFTS = ("D", "N")
 
