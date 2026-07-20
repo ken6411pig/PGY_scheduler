@@ -118,9 +118,10 @@ def solve(payload: dict) -> dict:
             model.Add(sum(x[p, i, s] for i, key in enumerate(keys) if key in holidays for s in SHIFTS) == target)
 
     objective = []
+    double_shift_penalty = int(payload.get("double_shift_penalty", 100))
     for p in names:
-        if not has_long_leave(set(by_name[p].get("leave_dates", []))):
-            objective.extend(100 * doubles[p, i] for i in range(len(days)))
+        if double_shift_penalty > 0 and not has_long_leave(set(by_name[p].get("leave_dates", []))):
+            objective.extend(double_shift_penalty * doubles[p, i] for i in range(len(days)))
         for i in range(len(days)):
             left_off = 1 if i == 0 else 1 - work[p, i - 1]
             right_off = 1 if i == len(days) - 1 else 1 - work[p, i + 1]
@@ -559,6 +560,15 @@ def render() -> None:
         c.metric("外援鎖定班數", sum(r["目標班數"] for r in rows if r["類別"] == "外援"))
         d.metric("支援分配班數", sum(r["目標班數"] for r in rows if r["類別"] == "支援"))
         st.dataframe(rows, use_container_width=True, hide_index=True, height=480)
+        tolerance = st.slider(
+            "24 小時班容忍度",
+            min_value=0,
+            max_value=100,
+            value=50,
+            help="0＝強烈避免同日白夜班；100＝可完全接受。長假 7 天以上者仍不受此懲罰。",
+        )
+        payload["double_shift_penalty"] = (100 - tolerance) * 2
+        st.caption(f"目前設定：{tolerance}／100（24 小時班懲罰權重：{payload['double_shift_penalty']}）")
         if st.button("產生 CP-SAT 班表", type="primary", use_container_width=True):
             with st.spinner("正在尋找最佳班表…"):
                 result = solve(payload)
